@@ -19,11 +19,8 @@ def p_statement_assign(p):
     relations[p[1]] = p[3]
 
 def p_statement_dump(p):
-    'statement : DUMP ID SEMI'
-    if not p[2] in relations:
-        print 'Unknown variable: ' + p[2]
-    else:
-        print relations[p[2]]
+    'statement : DUMP expression SEMI'
+    print p[2]
 
 def p_expression_id(p):
     'expression : ID'
