@@ -6,8 +6,18 @@ import relation
 import scanner
 from scanner import tokens
 
-# dictionary mapping variable names to relations/views
+import sys
+
+# symbol table
 relations = {}
+
+class UnknownSymbolException(Exception):
+    pass
+
+def lookup(sym):
+    if not sym in relations:
+        raise UnknownSymbolException(sym)
+    return relations[sym]
 
 def p_statement_list(p):
     '''statement_list : statement_list statement
@@ -16,6 +26,7 @@ def p_statement_list(p):
 
 def p_statement_assign(p):
     'statement : ID EQUALS expression SEMI'
+    global relations
     relations[p[1]] = p[3]
 
 def p_statement_dump(p):
@@ -24,11 +35,27 @@ def p_statement_dump(p):
 
 def p_expression_id(p):
     'expression : ID'
-    p[0] = relations[p[1]]
+    p[0] = lookup(p[1])
+
+def p_expression_load(p):
+    'expression : LOAD STRING_LITERAL AS schema'
+    p[0] = ('LOAD', p[2], p[4])
+
+def p_expression_union(p):
+    'expression : UNION ID COMMA ID'
+    p[0] = ('UNION', lookup(p[2]), lookup(p[4]))
+
+def p_expression_intersect(p):
+    'expression : INTERSECT ID COMMA ID'
+    p[0] = ('INTERSECT', lookup(p[2]), lookup(p[4]))
+
+def p_expression_diff(p):
+    'expression : DIFF ID COMMA ID'
+    p[0] = ('DIFF', lookup(p[2]), lookup(p[4]))
 
 def p_expression_table(p):
     'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
-    p[0] = relation.Relation(p[6], p[3])
+    p[0] = ('TABLE', p[3], p[6])
 
 def p_tuple_list(p):
     '''tuple_list : tuple_list COMMA tuple
@@ -79,8 +106,6 @@ def p_type_name(p):
 def p_error(p):
     print "Syntax error in input: " + str(p)
 
-import sys
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'No input file provided'
@@ -88,4 +113,4 @@ if __name__ == "__main__":
     parser = yacc.yacc(debug=True)
 
     with open(sys.argv[1]) as fh:
-        parser.parse(fh.read())
+        parser.parse(fh.read(), tracking=True)

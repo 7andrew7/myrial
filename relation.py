@@ -41,7 +41,7 @@ class TupleSizeException(Exception):
 class TypeMismatchException(Exception):
     pass
 
-class Relation:
+class TableLiteral:
     def __init__(self, columns, tuples):
         """
         Create a relation from a schema (columns) and tuples.  Do
@@ -76,15 +76,16 @@ if __name__ == "__main__":
 
     tuples = [(3,'bob', 4), (5, 'fred', 77), (45, 'asdf', 23)]
 
-    r = Relation(cols, tuples)
+    r = TableLiteral(cols, tuples)
     print r
 
+# TODO: Add failing test cases
     # tuple type exception
 #    tuples = [(3,'bob', 4), (5, 'fred', 'sam'), (45, 'asdf', 23)]
-#    r = Relation(cols, tuples)
+#    r = TableLiteral(cols, tuples)
 #    print r
 
     # tuple size exception
 #    tuples = [(3,'bob', 4), (5, 'fred'), (45, 'asdf', 23)]
-#    r = Relation(cols, tuples)
+#    r = TableLiteral(cols, tuples)
 #    print r
