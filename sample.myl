@@ -1,0 +1,57 @@
+
+def eval(self, data):
+    self.lexer.input(data)
+    for tok in self.lexer:
+        print tok, tok.value
+
+dl = MyrialParser()
+dl.build()
+
+input = """
+k = 4
+
+-- Load some points; assume each point has a unique ID
+A = LOAD "points.txt" AS (id:int, x:float, y:float)
+
+-- Create some random initial cluster centers from the first K points
+D = SHUFFLE A
+E = LIMIT D k
+F = SEQUENCE 0
+Centroids = FOREACH R EMIT (F.next, E.x, E.y) AS
+ (cluster_id:int, x:float, y:float)
+
+-- Assign each point to cluster 0
+Kmeans = FOREACH C EMIT (C.id, C.x, C.y, 0) AS
+ (id:int, x:float, y:float, cluster_id:int)
+
+DO
+  -- Calculate distance from each point to each centroid
+  I = CROSS Kmeans, Centroids
+  J = FOREACH I EMIT (Kmeans.id, Kmeans.x, Kmeans.y, Centroids.cluster_id,
+     $distance(Kmeans.x, Kmeans.y, Centroids.x, Centroids.y)) AS
+     (id:int, x:int, y:int, cluster_id:int, distance:float)
+
+  -- Choose closest cluster for each point
+  K = GROUP J BY (id, $min(distance))
+  L = JOIN J BY id, K BY id
+  M = FILTER L BY J.distance <= K.distance
+  
+  N = FOREACH M EMIT (J.id, J.x, J.y, J.cluster_id) AS
+      (id:int, x:float, y:float, cluster_id:int)
+
+  -- Break ties if we have any
+  Kmeans_next = GROUP N BY (id, x, y, $min(cluster_id))
+
+  Delta = DIFF(Kmeans_next, Kmeans)
+  Kmeans = Kmeans_next
+
+  -- Update centroids
+  Centroids = GROUP Kmeans BY (cluster_id, $avg(x), $avg(y)) AS
+      (cluster_id:int, x:float, y:float)
+
+WHILE DELTA
+
+SAVE Kmeans AS "Kmeans"
+"""
+
+dl.eval(input)

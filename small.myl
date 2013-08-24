@@ -1,0 +1,1 @@
+X = TABLE [(1,"Fred", 32000), (2, "Joe", 13000), (3, "Sally", 12332)] AS (id:int, name:string, salary:int);
