@@ -18,8 +18,8 @@ tokens = ['LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'PLUS', 'MINUS',
 # Regular expression rules for simple tokens
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
-t_LBRACKET = r'\{'
-t_RBRACKET = r'\}'
+t_LBRACKET = r'\['
+t_RBRACKET = r'\]'
 t_PLUS  = r'\+'
 t_MINUS  = r'-'
 t_TIMES  = r'\*'
@@ -85,6 +85,6 @@ t_ignore  = ' \t\v'
 
 # Error handling rule
 def t_error(t):
-    print "Illegal character '%s'" % t.value[0]
+    print "Illegal character token: " + str(t)
 
 lex.lex()

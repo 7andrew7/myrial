@@ -1,15 +1,3 @@
-
-def eval(self, data):
-    self.lexer.input(data)
-    for tok in self.lexer:
-        print tok, tok.value
-
-dl = MyrialParser()
-dl.build()
-
-input = """
-k = 4
-
 -- Load some points; assume each point has a unique ID
 A = LOAD "points.txt" AS (id:int, x:float, y:float)
 
@@ -52,6 +40,3 @@ DO
 WHILE DELTA
 
 SAVE Kmeans AS "Kmeans"
-"""
-
-dl.eval(input)
