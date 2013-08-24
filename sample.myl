@@ -9,10 +9,11 @@ DUMP X;
 Y = TABLE [(4,"Henry", 221342), (5, "Heather", 32423), (6, "Chuck", 7032)] AS
   (id:int, name:string, salary:int);
 
-/* assignment */
+/* assignment it to Z and dump */
 Z = Y;
 DUMP Z;
 
+-- Re-assign Z to something else
 Z = UNION X, Y;
 A = INTERSECT X, Y;
 B = DIFF X, Y;
