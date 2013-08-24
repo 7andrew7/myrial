@@ -25,6 +25,10 @@ def p_statement_dump(p):
     else:
         print relations[p[2]]
 
+def p_expression_id(p):
+    'expression : ID'
+    p[0] = relations[p[1]]
+
 def p_expression_table(p):
     'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
     p[0] = relation.Relation(p[6], p[3])
