@@ -4,16 +4,17 @@ import ply.lex as lex
 
 # identifiers with special meaning; case-insensitive:
 # LoAd, load, LOAD are all accepted
-reserved = ['LOAD', 'STORE', 'LIMIT', 'SHUFFLE', 'SEQUENCE',
-            'CROSS', 'JOIN', 'GROUP', 'FOREACH', 'EMIT', 'AS',
-            'DIFF', 'UNION', 'INTERSECT', 'DUMP', 'FILTER', 'TABLE',
-            'ORDER', 'ASC', 'DESC', 'BY', 'WHILE', 'INT', 'STRING']
+reserved = ['LOAD', 'STORE', 'LIMIT', 'SHUFFLE', 'SEQUENCE', 'CROSS', 'JOIN',
+            'GROUP', 'FOREACH', 'EMIT', 'AS', 'DIFF', 'UNION', 'INTERSECT',
+            'DUMP', 'FILTER', 'TABLE', 'ORDER', 'ASC', 'DESC', 'BY', 'WHILE',
+            'INT', 'STRING', 'DESCRIBE']
 
 # Token types; required by ply to have this variable name
-tokens = ['LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'PLUS', 'MINUS',
-          'TIMES', 'DIVIDE', 'MOD', 'LOR', 'LAND', 'LNOT', 'LT', 'GT', 'GE',
-          'LE', 'EQ', 'NE', 'COMMA', 'SEMI', 'EQUALS', 'COLON', 'DOLLAR',
-          'DOT', 'ID', 'STRING_LITERAL', 'INTEGER_LITERAL'] + reserved
+tokens = ['LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'PLUS', 'MINUS', 'TIMES',
+          'DIVIDE', 'MOD', 'LOR', 'LAND', 'LNOT', 'LT', 'GT', 'GE', 'LE', 'EQ',
+          'NE', 'COMMA', 'SEMI', 'EQUALS', 'COLON', 'DOLLAR', 'DOT', 'ID',
+          'STRING_LITERAL', 'INTEGER_LITERAL'] + reserved
+
 
 # Regular expression rules for simple tokens
 t_LPAREN = r'\('
