@@ -28,6 +28,10 @@ def p_statement_describe(p):
     'statement : DESCRIBE expression SEMI'
     p[0] = ('STATEMENT_DESCRIBE', p[2])
 
+def p_statement_dowhile(p):
+    'statement : DO statement_list WHILE expression SEMI'
+    p[0] = ('STATEMENT_DOWHILE', p[2], p[4])
+
 def p_expression_id(p):
     'expression : ID'
     p[0] = ('ID', p[1])
@@ -58,6 +62,34 @@ def p_expression_foreach(p):
     if len(p) == 8:
         p[0] += (p[7],)
 
+def p_expression_join(p):
+    'expression : JOIN join_argument COMMA join_argument'
+    p[0] = ('JOIN', p[2], p[4])
+
+def p_join_argument_list(p):
+    'join_argument : ID BY LPAREN column_name_list RPAREN'
+    p[0] = (p[1], p[4])
+
+def p_join_argument_single(p):
+    'join_argument : ID BY column_name'
+    p[0] = (p[1], (p[3],))
+
+def p_schema(p):
+    'schema : LPAREN column_def_list RPAREN'
+    p[0] = p[2]
+
+def p_column_def_list(p):
+    '''column_def_list : column_def_list COMMA column_def
+                       | column_def'''
+    if len(p) == 4:
+        p[0] = p[1] + (p[3],)
+    else:
+        p[0] = (p[1],)
+
+def p_column_def(p):
+    'column_def : column_name COLON type_name'
+    p[0] = relation.Column(p[1], p[3])
+
 def p_column_name_list(p):
     '''column_name_list : column_name_list COMMA column_name
                         | column_name'''
@@ -66,13 +98,13 @@ def p_column_name_list(p):
     else:
         p[0] = (p[1],)
 
+def p_column_name_dotted(p):
+    'column_name : column_name DOT ID'
+    p[0] = p[1] + '.' + p[3]
+
 def p_column_name_simple(p):
     'column_name : ID'
     p[0] = p[1]
-
-def p_column_name_dotted(p):
-    'column_name : column_name DOT column_name'
-    p[0] = p[1] + '.' + p[3]
 
 def p_optional_as(p):
     '''optional_as : AS schema
@@ -111,29 +143,13 @@ def p_literal(p):
                | STRING_LITERAL'''
     p[0] = p[1]
 
-def p_schema(p):
-    'schema : LPAREN column_def_list RPAREN'
-    p[0] = p[2]
-
-def p_column_def_list(p):
-    '''column_def_list : column_def_list COMMA column_def
-                       | column_def'''
-    if len(p) == 4:
-        p[0] = p[1] + (p[3],)
-    else:
-        p[0] = (p[1],)
-
-def p_column_def(p):
-    'column_def : ID COLON type_name'
-    p[0] = relation.Column(p[1], p[3])
-
 def p_type_name(p):
     '''type_name : STRING
                  | INT'''
     p[0] = p[1]
 
 def p_error(p):
-    print "Syntax error on line %d: %s" % (p.lineno, str(p))
+    print "Syntax error: %s" %  str(p)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

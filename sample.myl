@@ -7,7 +7,7 @@ DUMP X;
 
 /* load another table */
 Y = TABLE [(4,"Henry", 221342), (5, "Heather", 32423), (6, "Chuck", 7032)] AS
-  (id:int, name:string, salary:int);
+  (id:int, name:string, salary.max:int);
 
 /* assignment it to Z and dump */
 Z = Y;
@@ -22,5 +22,16 @@ B = DIFF X, Y;
 
 DESCRIBE B;
 
-D = FOREACH B EMIT (id, age, birthday);
+D = FOREACH B EMIT (birthday);
 C = FOREACH B EMIT (Foo.id, age) AS (id:int, age:int);
+
+X = JOIN Reachable BY dest, Edge BY source;
+Y = JOIN Reachable BY (source, dest), Edge BY (dest, source);
+
+DO
+   A = JOIN Reachable BY dest, Edge BY source;
+   OneHopAway = FOREACH A EMIT (Reachable.source, Edge.dest) AS
+       (source:string, dest:string);
+
+   Reachable = UNION Reachable, OneHopAway;
+WHILE DIFF OneHopAway, Reachable;
