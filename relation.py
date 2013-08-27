@@ -63,6 +63,18 @@ class Schema:
                 return False
         return True
 
+    def project(self, column_names):
+        '''Return a subset of a schema, as identified by column names'''
+
+        # Make sure column names are legit
+        all_column_names = [c.name for c in self.columns]
+        for name in column_names:
+            assert name in all_column_names
+
+        # project out a subset of the columns
+        cols = [c for c in self.columns if c.name in column_names]
+        return Schema(cols)
+
 if __name__ == "__main__":
     colstrs1 = ['salary:int', 'name:string', 'id:int']
     cols1 = [Column.from_string(x) for x in colstrs1]

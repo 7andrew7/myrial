@@ -2,29 +2,33 @@
 X = TABLE [(1,"Fred", 32000), (2, "Joe", 13000), (3, "Sally", 12332)] AS
   (id:int, name:string, salary:int);
 
--- Dump it to standard out
-DUMP X;
+EXPLAIN X;
 
 /* load another table */
-Y = TABLE [(4,"Henry", 221342), (5, "Heather", 32423), (6, "Chuck", 7032)] AS
-  (id:int, name:string, salary.max:int);
+Y = LOAD "hdfs://foo.bar.com/some_data.txt" AS
+   (another_id:int, another.name:string, salary.max:int);
 
-/* assignment it to Z and dump */
+/* assignment it to Z and describe */
 Z = Y;
-DUMP Z;
-
-Q = LOAD "/foo/bar.txt" AS (id:string, id2:int);
+DESCRIBE Z;
 
 -- Re-assign Z to something else
 Z = UNION X, Y;
+EXPLAIN Z;
+
 A = INTERSECT X, Y;
+DESCRIBE A;
+
 B = DIFF X, Y;
+EXPLAIN B;
 
-DESCRIBE B;
+D = FOREACH B EMIT (salary);
+EXPLAIN D;
 
-D = FOREACH B EMIT (birthday);
-C = FOREACH B EMIT (Foo.id, age) AS (id:int, age:int);
+C = FOREACH B EMIT (id, name) AS (unique_id:int, fullname:string);
+EXPLAIN C;
 
+/*
 X = JOIN Reachable BY dest, Edge BY source;
 Y = JOIN Reachable BY (source, dest), Edge BY (dest, source);
 
@@ -35,3 +39,4 @@ DO
 
    Reachable = UNION Reachable, OneHopAway;
 WHILE DIFF OneHopAway, Reachable;
+*/

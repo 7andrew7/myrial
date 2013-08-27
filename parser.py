@@ -20,12 +20,9 @@ class Expression:
         self.kwargs = kwargs
 
     def __str__(self):
-        col_strs = [str(c) for c in self.schema]
         child_strs = [str(c) for c in self.children]
-        return "{%s %s (%s) ==> [%s]}" % (self.type,
-                                          str(self.kwargs),
-                                          ','.join(col_strs),
-                                          ','.join(child_strs))
+        return "{%s kwargs=%s schema=%s children=[%s]}" % (
+            self.type, str(self.kwargs), self.schema, ','.join(child_strs))
 
 def p_statement_list(p):
     '''statement_list : statement_list statement
@@ -44,8 +41,7 @@ def p_statement_dump(p):
 def p_statement_describe(p):
     'statement : DESCRIBE ID SEMI'
     ex = symbols[p[2]]
-    col_strs = [str(c) for c in ex.schema]
-    print '%s : (%s)' % (p[2], ','.join(col_strs))
+    print '%s : %s' % (p[2], str(ex.schema))
 
 def p_statement_explain(p):
     'statement : EXPLAIN ID SEMI'
@@ -64,27 +60,39 @@ def p_expression_load(p):
     'expression : LOAD STRING_LITERAL AS schema'
     p[0] = Expression('LOAD', p[4], path=p[2])
 
-def p_expression_union(p):
-    'expression : UNION ID COMMA ID'
-    p[0] = ('UNION', p[2], p[4])
-
-def p_expression_intersect(p):
-    'expression : INTERSECT ID COMMA ID'
-    p[0] = ('INTERSECT', p[2], p[4])
-
-def p_expression_diff(p):
-    'expression : DIFF ID COMMA ID'
-    p[0] = ('DIFF', p[2], p[4])
-
 def p_expression_table(p):
     'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
-    p[0] = ('TABLE', p[3], p[6])
+    p[0] = Expression('TABLE', p[6], value=p[3])
+
+def p_expression_binary_set_operation(p):
+    'expression : setop ID COMMA ID'
+    ex1 = symbols[p[2]]
+    ex2 = symbols[p[4]]
+    assert ex1.schema.compatible(ex2.schema)
+
+    # Use the schema from expression1
+    p[0] = Expression(p[1], ex1.schema, children=[ex1, ex2])
+
+def p_setop(p):
+    '''setop : INTERSECT
+             | DIFF
+             | UNION'''
+    p[0] = p[1]
 
 def p_expression_foreach(p):
     'expression : FOREACH ID EMIT LPAREN column_name_list RPAREN optional_as'
-    p[0] = ('FOREACH', p[2], p[5])
-    if len(p) == 8:
-        p[0] += (p[7],)
+    ex = symbols[p[2]]
+    schema_in = ex.schema.project(p[5])
+    schema_out = schema_in
+
+    if p[7]:
+        schema_out = p[7]
+        assert schema_in.compatible(schema_out)
+
+    p[0] = Expression('FOREACH', schema_out, children=[ex],
+                      column_names=p[5])
+
+###### TODO: expressionify below here ####################
 
 def p_expression_join(p):
     'expression : JOIN join_argument COMMA join_argument'
@@ -98,17 +106,26 @@ def p_join_argument_single(p):
     'join_argument : ID BY column_name'
     p[0] = (p[1], (p[3],))
 
+def p_optional_as(p):
+    '''optional_as : AS schema
+                   | empty'''
+    if len(p) == 3:
+        p[0] = p[2]
+    else:
+        p[0] = None
+
 def p_schema(p):
     'schema : LPAREN column_def_list RPAREN'
-    p[0] = p[2]
+    p[0] = relation.Schema(p[2])
 
 def p_column_def_list(p):
     '''column_def_list : column_def_list COMMA column_def
                        | column_def'''
     if len(p) == 4:
-        p[0] = p[1] + (p[3],)
+        cols = p[1] + [p[3]]
     else:
-        p[0] = (p[1],)
+        cols = [p[1]]
+    p[0] = cols
 
 def p_column_def(p):
     'column_def : column_name COLON type_name'
@@ -129,14 +146,6 @@ def p_column_name_dotted(p):
 def p_column_name_simple(p):
     'column_name : ID'
     p[0] = p[1]
-
-def p_optional_as(p):
-    '''optional_as : AS schema
-                   | empty'''
-    if len(p) == 3:
-        p[0] = p[2]
-    else:
-        p[0] = None
 
 def p_empty(p):
     'empty :'
