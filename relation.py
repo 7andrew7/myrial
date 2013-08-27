@@ -15,6 +15,9 @@ class PrimitiveType:
     def __eq__(self, other):
         return self.type == other.type
 
+    def __ne__(self, other):
+        return self.type != other.type
+
     def get_python_type(self):
         return PrimitiveType.mappings[self.type]
 
@@ -35,57 +38,45 @@ class Column:
     def get_python_type(self):
         return self.type.get_python_type()
 
-class TupleSizeException(Exception):
-    pass
-
-class TypeMismatchException(Exception):
-    pass
-
-class TableLiteral:
-    def __init__(self, columns, tuples):
-        """
-        Create a relation from a schema (columns) and tuples.  Do
-        type checking of the tuple fields
-        """
-
-        num_columns = len(columns)
-        expected_types = [x.get_python_type() for x in columns]
-
-        for tup in tuples:
-            if len(tup) != num_columns:
-                raise TupleSizeException("Bad column count: " + str(tup))
-
-            actual_types = [type(x) for x in tup]
-            if expected_types != actual_types:
-                cstrs = [str(c) for c in columns]
-                raise TypeMismatchException("%s : schema: (%s)" %
-                                            (str(tup), ','.join(cstrs)))
-
+class Schema:
+    def __init__(self, columns=[]):
         self.columns = columns
-        self.tuples = tuples
 
     def __str__(self):
         cstrs = [str(c) for c in self.columns]
-        tstrs = [str(t) for t in self.tuples]
+        return '(%s)' % ','.join(cstrs)
 
-        return '(%s)\n[%s]' % (','.join(cstrs), ','.join(tstrs))
+    def __eq__(self, other):
+        return self.columns == other.columns
+
+    def compatible(self, other):
+        '''Return whether two schemas are compatible.
+
+        Compatible means that the schemas have the same number of columns,
+        each having the same type.  Column names are ignored
+        '''
+        if len(self.columns) != len(other.columns):
+            return False
+        for c1, c2 in zip(self.columns, other.columns):
+            if c1.type != c2.type:
+                print '%s  %s' % (c1.type, c2.type)
+                return False
+        return True
 
 if __name__ == "__main__":
-    colstrs = ['salary:int', 'name:string', 'id:int']
-    cols = [Column.from_string(x) for x in colstrs]
+    colstrs1 = ['salary:int', 'name:string', 'id:int']
+    cols1 = [Column.from_string(x) for x in colstrs1]
 
-    tuples = [(3,'bob', 4), (5, 'fred', 77), (45, 'asdf', 23)]
+    s1 = Schema(cols1)
+    print s1
+    print s1 == s1
+    print s1.compatible(s1)
 
-    r = TableLiteral(cols, tuples)
-    print r
+    colstrs2 = ['salary1:int', 'name2:string', 'id2:int']
+    cols2 = [Column.from_string(x) for x in colstrs2]
+    s2 = Schema(cols2)
 
-# TODO: Add failing test cases
-    # tuple type exception
-#    tuples = [(3,'bob', 4), (5, 'fred', 'sam'), (45, 'asdf', 23)]
-#    r = TableLiteral(cols, tuples)
-#    print r
-
-    # tuple size exception
-#    tuples = [(3,'bob', 4), (5, 'fred'), (45, 'asdf', 23)]
-#    r = TableLiteral(cols, tuples)
-#    print r
+    print s2
+    print s1 == s2
+    print s1.compatible(s2)
+    print s2.compatible(s1)
