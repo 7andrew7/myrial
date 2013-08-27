@@ -28,10 +28,16 @@ EXPLAIN D;
 C = FOREACH B EMIT (id, name) AS (unique_id:int, fullname:string);
 EXPLAIN C;
 
-/*
-X = JOIN Reachable BY dest, Edge BY source;
-Y = JOIN Reachable BY (source, dest), Edge BY (dest, source);
+E1 = LOAD "edges.txt" AS (source:int, dest:int);
+E2 = E1;
 
+X = JOIN E2 BY source, E1 BY dest;
+EXPLAIN X;
+
+Y = JOIN E2 BY (source, dest), E1 BY (dest, source);
+EXPLAIN Y;
+
+/*
 DO
    A = JOIN Reachable BY dest, Edge BY source;
    OneHopAway = FOREACH A EMIT (Reachable.source, Edge.dest) AS

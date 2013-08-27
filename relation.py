@@ -24,7 +24,7 @@ class PrimitiveType:
 class Column:
     def __init__(self, name, _type):
         self.name = name
-        self.type = PrimitiveType(_type.lower())
+        self.type = _type
 
     def __str__(self):
         return self.name + ':' + str(self.type)
@@ -75,6 +75,18 @@ class Schema:
         cols = [c for c in self.columns if c.name in column_names]
         return Schema(cols)
 
+    @staticmethod
+    def join(schemas, prefixes):
+        '''Create a new schema by merging multiple schemas together.
+
+        Column names are renamed by prepending the strings in the prefix array.
+        '''
+        columns = []
+        for schema, prefix in zip(schemas, prefixes):
+            for column in schema.columns:
+               columns.append(Column(prefix + '.' + column.name, column.type))
+        return Schema(columns)
+
 if __name__ == "__main__":
     colstrs1 = ['salary:int', 'name:string', 'id:int']
     cols1 = [Column.from_string(x) for x in colstrs1]
@@ -92,3 +104,6 @@ if __name__ == "__main__":
     print s1 == s2
     print s1.compatible(s2)
     print s2.compatible(s1)
+
+    s3 = Schema.join([s1, s2], ['A', 'B'])
+    print s3

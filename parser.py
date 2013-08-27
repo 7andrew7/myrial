@@ -92,19 +92,39 @@ def p_expression_foreach(p):
     p[0] = Expression('FOREACH', schema_out, children=[ex],
                       column_names=p[5])
 
-###### TODO: expressionify below here ####################
+class JoinTarget:
+    def __init__(self, id, column_names):
+        self.id = id
+        self.column_names = column_names
 
 def p_expression_join(p):
     'expression : JOIN join_argument COMMA join_argument'
-    p[0] = ('JOIN', p[2], p[4])
+    global symbols
+
+    target1 = p[2]
+    exp1 = symbols[target1.id]
+    target2 = p[4]
+    exp2 = symbols[target2.id]
+
+    # Tables must agree on the type of join attributes
+    schema1 = exp1.schema.project(target1.column_names)
+    schema2 = exp2.schema.project(target2.column_names)
+
+    assert schema1.compatible(schema2)
+
+    schema_out = relation.Schema.join([exp1.schema, exp2.schema],
+                                      [target1.id, target2.id])
+    join_attributes = [target1.column_names, target2.column_names]
+    p[0] = Expression('JOIN', schema_out, children=[exp1, exp2],
+                      join_attributes=join_attributes)
 
 def p_join_argument_list(p):
     'join_argument : ID BY LPAREN column_name_list RPAREN'
-    p[0] = (p[1], p[4])
+    p[0] = JoinTarget(p[1], p[4])
 
 def p_join_argument_single(p):
     'join_argument : ID BY column_name'
-    p[0] = (p[1], (p[3],))
+    p[0] = JoinTarget(p[1], (p[3],))
 
 def p_optional_as(p):
     '''optional_as : AS schema
