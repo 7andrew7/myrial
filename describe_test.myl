@@ -1,0 +1,8 @@
+
+E1 = LOAD "hdfs://vega/edges.txt" AS (source:string, dest:string);
+DESCRIBE E1;
+EXPLAIN E1;
+
+E2 = E1;
+DESCRIBE E2;
+EXPLAIN E2;

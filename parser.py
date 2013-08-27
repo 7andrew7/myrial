@@ -8,37 +8,61 @@ from scanner import tokens
 
 import sys
 
+# Map from identifier to expression objects
+symbols = {}
+
+class Expression:
+    '''Representation of a myrial expression '''
+    def  __init__(self, _type, schema, children=[], **kwargs):
+        self.type = _type
+        self.schema = schema
+        self.children = children
+        self.kwargs = kwargs
+
+    def __str__(self):
+        col_strs = [str(c) for c in self.schema]
+        child_strs = [str(c) for c in self.children]
+        return "{%s %s (%s) ==> [%s]}" % (self.type,
+                                          str(self.kwargs),
+                                          ','.join(col_strs),
+                                          ','.join(child_strs))
+
 def p_statement_list(p):
     '''statement_list : statement_list statement
                       | statement'''
-    if len(p) == 3:
-        p[0] = p[1] + [p[2]]
-    else:
-        p[0] = [p[1]]
+    pass
 
 def p_statement_assign(p):
     'statement : ID EQUALS expression SEMI'
-    p[0] = {'type': 'ASSIGN', 'id': p[1], 'exp': p[3]}
+    global symbols
+    symbols[p[1]] = p[3]
 
 def p_statement_dump(p):
     'statement : DUMP expression SEMI'
-    p[0] = {'type': 'DUMP', 'exp': p[2]}
+    pass
 
 def p_statement_describe(p):
-    'statement : DESCRIBE expression SEMI'
-    p[0] = {'type': 'DESCRIBE', 'exp': p[2]}
+    'statement : DESCRIBE ID SEMI'
+    ex = symbols[p[2]]
+    col_strs = [str(c) for c in ex.schema]
+    print '%s : (%s)' % (p[2], ','.join(col_strs))
+
+def p_statement_explain(p):
+    'statement : EXPLAIN ID SEMI'
+    ex = symbols[p[2]]
+    print '%s : %s' % (p[2], str(ex))
 
 def p_statement_dowhile(p):
     'statement : DO statement_list WHILE expression SEMI'
-    p[0] = {'type': 'DOWHILE', 'statements': p[2], 'term_expression': p[4]}
+    pass
 
 def p_expression_id(p):
     'expression : ID'
-    p[0] = {'type': 'id', 'id': p[1]}
+    p[0] = symbols[p[1]]
 
 def p_expression_load(p):
     'expression : LOAD STRING_LITERAL AS schema'
-    p[0] = {'type': 'LOAD', 'path': p[2], 'schema': p[4]}
+    p[0] = Expression('LOAD', p[4], path=p[2])
 
 def p_expression_union(p):
     'expression : UNION ID COMMA ID'
@@ -150,7 +174,7 @@ def p_type_name(p):
 
 def parse(s):
     parser = yacc.yacc(debug=True)
-    return parser.parse(s, tracking=True)
+    parser.parse(s, tracking=True)
 
 def p_error(p):
     print "Syntax error: %s" %  str(p)
@@ -161,4 +185,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     with open(sys.argv[1]) as fh:
-        print parse(fh.read())
+        parse(fh.read())

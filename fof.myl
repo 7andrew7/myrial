@@ -4,3 +4,4 @@ E2 = E1;
 
 A = JOIN E1 BY dest, E2 BY source;
 FoF = FOREACH A EMIT (E1.source, E2.dest) AS (source:string, dest:string);
+EXPLAIN FoF;
