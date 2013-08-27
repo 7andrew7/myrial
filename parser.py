@@ -18,27 +18,27 @@ def p_statement_list(p):
 
 def p_statement_assign(p):
     'statement : ID EQUALS expression SEMI'
-    p[0] = ('STATEMENT_ASSIGN', p[1], p[3])
+    p[0] = {'type': 'ASSIGN', 'id': p[1], 'exp': p[3]}
 
 def p_statement_dump(p):
     'statement : DUMP expression SEMI'
-    p[0] = ('STATEMENT_DUMP', p[2])
+    p[0] = {'type': 'DUMP', 'exp': p[2]}
 
 def p_statement_describe(p):
     'statement : DESCRIBE expression SEMI'
-    p[0] = ('STATEMENT_DESCRIBE', p[2])
+    p[0] = {'type': 'DESCRIBE', 'exp': p[2]}
 
 def p_statement_dowhile(p):
     'statement : DO statement_list WHILE expression SEMI'
-    p[0] = ('STATEMENT_DOWHILE', p[2], p[4])
+    p[0] = {'type': 'DOWHILE', 'statements': p[2], 'term_expression': p[4]}
 
 def p_expression_id(p):
     'expression : ID'
-    p[0] = ('ID', p[1])
+    p[0] = {'type': 'id', 'id': p[1]}
 
 def p_expression_load(p):
     'expression : LOAD STRING_LITERAL AS schema'
-    p[0] = ('LOAD', p[2], p[4])
+    p[0] = {'type': 'LOAD', 'path': p[2], 'schema': p[4]}
 
 def p_expression_union(p):
     'expression : UNION ID COMMA ID'
@@ -148,6 +148,10 @@ def p_type_name(p):
                  | INT'''
     p[0] = p[1]
 
+def parse(s):
+    parser = yacc.yacc(debug=True)
+    return parser.parse(s, tracking=True)
+
 def p_error(p):
     print "Syntax error: %s" %  str(p)
 
@@ -155,7 +159,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'No input file provided'
         sys.exit(1)
-    parser = yacc.yacc(debug=True)
 
     with open(sys.argv[1]) as fh:
-        print parser.parse(fh.read(), tracking=True)
+        print parse(fh.read())
