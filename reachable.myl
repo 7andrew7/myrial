@@ -9,4 +9,4 @@ DO
    Reachable = UNION Reachable, OneHopAway;
 WHILE DIFF OneHopAway, Reachable;
 
-DUMP Reachable;
+DESCRIBE Reachable;
