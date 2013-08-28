@@ -1,12 +1,12 @@
 
-Edge = LOAD "hdfs://vega/edges.txt" AS (source:string, dest:string);
+Edge = LOAD "edge.txt" AS (source:int, dest:int);
 Reachable = Edge;
 
 DO
-   A = JOIN Reachable BY dest, Edge BY source;
-   OneHopAway = FOREACH A EMIT (Reachable.source, Edge.dest) AS
-       (source:string, dest:string);
-   Reachable = UNION Reachable, OneHopAway;
-WHILE DIFF OneHopAway, Reachable;
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Reachable = UNION NewlyReachable, Reachable;
+WHILE DIFF NewlyReachable, Reachable;
 
-DESCRIBE Reachable;
+DUMP Reachable;
