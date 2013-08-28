@@ -61,6 +61,11 @@ def p_expression_table(p):
         schema.validate_tuple(tup)
     p[0] = Expression('TABLE', p[6], tuple_list=tuple_list)
 
+def p_expression_limit(p):
+    'expression : LIMIT ID COMMA INTEGER_LITERAL'
+    ex = symbols[p[2]]
+    p[0] = Expression('LIMIT', ex.schema, children=[ex], count=p[4])
+
 def p_expression_binary_set_operation(p):
     'expression : setop ID COMMA ID'
     ex1 = symbols[p[2]]

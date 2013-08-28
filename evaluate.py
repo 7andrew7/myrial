@@ -86,6 +86,11 @@ class LocalEvaluator(Evaluator):
         # Return tuples that match on the join conditions
         return (tpl for tpl in p2 if columns_match(tpl, join_attributes))
 
+    def limit(self, expr, count):
+        assert len(expr.children) == 1
+        cis = self.__evaluate_children(expr.children)
+        return itertools.islice(cis[0], count)
+
     def foreach(self, expr, column_indexes):
         assert len(expr.children) == 1
         cis = self.__evaluate_children(expr.children)

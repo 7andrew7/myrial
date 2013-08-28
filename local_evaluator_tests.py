@@ -127,3 +127,16 @@ class LocalEvaluatorTests(unittest.TestCase):
 
     expected = collections.Counter(t2)
     self.assertEqual(actual, expected)
+
+  def test_limit(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+    t1 = [(2*k, 2*k + 1) for k in range(40)]
+    c1 = Expression('TABLE', schema, tuple_list=t1)
+
+    ex = Expression('LIMIT', schema, children=[c1], count=8)
+
+    actual = self.evaluator.evaluate_to_bag(ex)
+    self.assertEqual(sum(actual.values()), 8)
+
+    expected = collections.Counter(t1[:8])
+    self.assertEqual(actual, expected)
