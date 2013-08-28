@@ -88,6 +88,14 @@ class Schema:
     def column_type(self, index):
         return self.columns[index].type
 
+    def validate_tuple(self, tup):
+        '''Validate that a given tuple matches the schema'''
+        if len(self.columns) != len(tup):
+            raise SchemaTypeException(
+                'Bad column count: schema=%s; tup=(%s)' % (str(self), str(tup)))
+        for atom, column in zip(tup, self.columns):
+            assert type(atom) == column.get_python_type()
+
     def tuple_from_string(self, s, delimeter='\t'):
         '''Convert a string into a tuple with the given schema'''
         toks = s.split(delimeter)
