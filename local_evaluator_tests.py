@@ -59,3 +59,12 @@ class LocalEvaluatorTests(unittest.TestCase):
                                     if e[1] == d[0]])
     self.assertEqual(actual,expected)
 
+  def test_foreach(self):
+    l1 = Expression('LOAD', self.employee_schema, path='employees.txt')
+    schema_out = relation.Schema.from_strings(['name:string','salary:int'])
+    ex = Expression('FOREACH', schema_out, children=[l1],
+                    column_indexes=[2,3])
+    actual = self.evaluator.evaluate_to_bag(ex)
+
+    expected = collections.Counter([(t[2], t[3]) for t in self.employee_tuples])
+    self.assertEqual(actual, expected)
