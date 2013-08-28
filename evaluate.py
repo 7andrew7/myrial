@@ -39,6 +39,9 @@ class Evaluator:
     def join(self, expr, join_attributes):
         raise NotImplementedError()
 
+    def foreach(self, expr, column_indexes):
+        raise NotImplementedError()
+
 def columns_match(tpl, column_pairs):
     '''Return whether tuple fields agree on a list of column pairs'''
     for x,y in column_pairs:
