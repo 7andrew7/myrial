@@ -90,19 +90,35 @@ def p_expression_join(p):
     global symbols
 
     target1 = p[2]
-    exp1 = symbols[target1.id]
     target2 = p[4]
+
+    # Look up the expression and schema for the given identifiers
+    exp1 = symbols[target1.id]
     exp2 = symbols[target2.id]
+    schema1 = exp1.schema
+    schema2 = exp2.schema
 
-    # Tables must agree on the type of join attributes
-    schema1 = exp1.schema.project(target1.column_names)
-    schema2 = exp2.schema.project(target2.column_names)
+    # Each target must refer to the same number of join attributes
+    assert len(target1.column_names) == len(target2.column_names)
 
-    assert schema1.compatible(schema2)
+    # Compute pairs of join attributes that must match in the merged schema.
+    # Also, enforce type safety.
+    join_attributes = []
+    offset = exp1.schema.num_columns()
+    for c1, c2 in zip(target1.column_names, target2.column_names):
+        index1 = schema1.column_index(c1)
+        index2 = schema2.column_index(c2)
 
+        assert index1 >= 0
+        assert index2 >= 0
+        assert schema1.column_type(index1) == schema2.column_type(index2)
+
+        join_attributes.append((index1, index2 + offset))
+
+    # compute the schema of the merged relation
     schema_out = relation.Schema.join([exp1.schema, exp2.schema],
                                       [target1.id, target2.id])
-    join_attributes = [target1.column_names, target2.column_names]
+
     p[0] = Expression('JOIN', schema_out, children=[exp1, exp2],
                       join_attributes=join_attributes)
 

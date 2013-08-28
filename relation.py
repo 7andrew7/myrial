@@ -37,6 +37,11 @@ class Column:
 
 class Schema:
     def __init__(self, columns=[]):
+        # Ensure column names are not duplicated
+        strlist = [column.name for column in columns]
+        strset = set(strlist)
+        assert len(strset) == len(strlist)
+
         self.columns = columns
 
     @classmethod
@@ -53,6 +58,19 @@ class Schema:
 
     def __eq__(self, other):
         return self.columns == other.columns
+
+    def num_columns(self):
+        return len(self.columns)
+
+    def column_index(self, name):
+        '''Return the index of a column or -1 if not found'''
+        for i in range(len(self.columns)):
+            if self.columns[i].name == name:
+                return i
+        return -1
+
+    def column_type(self, index):
+        return self.columns[index].type
 
     def tuple_from_string(self, s, delimeter='\t'):
         '''Convert a string into a tuple with the given schema'''
