@@ -5,6 +5,9 @@ import types
 class SchemaTypeException(Exception):
     pass
 
+class NoSuchColumnException(Exception):
+    pass
+
 class Column:
     mappings = {'int' : types.IntType, 'string' : types.StringType}
 
@@ -62,12 +65,25 @@ class Schema:
     def num_columns(self):
         return len(self.columns)
 
+    def get_column(self, name):
+        '''Return a column by name
+
+        Raise a NoSuchColumnException on failure.
+        '''
+        for c in self.columns:
+            if c.name == name:
+                return c
+        raise NoSuchColumnException(name)
+
     def column_index(self, name):
-        '''Return the index of a column or -1 if not found'''
+        '''Return the index of a column.
+
+        raise a NoSuchColumnException on failure
+        '''
         for i in range(len(self.columns)):
             if self.columns[i].name == name:
                 return i
-        return -1
+        raise NoSuchColumnException(name)
 
     def column_type(self, index):
         return self.columns[index].type
@@ -98,16 +114,9 @@ class Schema:
         return True
 
     def project(self, column_names):
-        '''Return a subset of a schema, as identified by column names'''
-
-        # Make sure column names are legit
-        all_column_names = [c.name for c in self.columns]
-        for name in column_names:
-            assert name in all_column_names
-
-        # project out a subset of the columns
-        cols = [c for c in self.columns if c.name in column_names]
-        return Schema(cols)
+        '''Return a new schema derived from column names'''
+        columns = [self.get_column(name) for name in column_names]
+        return Schema(columns)
 
     @staticmethod
     def join(schemas, prefixes):

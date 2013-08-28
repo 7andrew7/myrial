@@ -4,3 +4,13 @@ Dept = LOAD "departments.txt" AS (id:int, name:string, manager_id:int);
 
 A = JOIN Emp BY dept_id, Dept BY id;
 DUMP A;
+
+DeptOf = FOREACH A EMIT (Emp.name, Dept.name) AS
+         (emp_name:string, dept_name:string);
+DESCRIBE DeptOf;
+DUMP DeptOf;
+
+Salary = FOREACH A EMIT (Dept.name, Emp.salary) AS
+       (dept_name:string, salary:int);
+DESCRIBE Salary;
+DUMP Salary;

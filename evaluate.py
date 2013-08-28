@@ -80,6 +80,12 @@ class LocalEvaluator(Evaluator):
         # Return tuples that match on the join conditions
         return (tpl for tpl in p2 if columns_match(tpl, join_attributes))
 
+    def foreach(self, expr, column_indexes):
+        assert len(expr.children) == 1
+
+        it = self.evaluate(expr.children[0])
+        return (tuple([tpl[i] for i in column_indexes]) for tpl in it)
+
 if __name__ == "__main__":
     ev = LocalEvaluator()
 

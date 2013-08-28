@@ -74,16 +74,22 @@ def p_setop(p):
 
 def p_expression_foreach(p):
     'expression : FOREACH ID EMIT LPAREN column_name_list RPAREN optional_as'
+
+    # TODO: we should allow duplicate columns to be selected, as long sa
+    # the user provides a rename schema
+
     ex = symbols[p[2]]
-    schema_in = ex.schema.project(p[5])
-    schema_out = schema_in
+    schema_in = ex.schema
+    schema_out = ex.schema.project(p[5])
 
+    # Rename the columns, if requested
     if p[7]:
+        assert schema_out.compatible(p[7])
         schema_out = p[7]
-        assert schema_in.compatible(schema_out)
 
+    column_indexes = [schema_in.column_index(c) for c in p[5]]
     p[0] = Expression('FOREACH', schema_out, children=[ex],
-                      column_names=p[5])
+                      column_indexes=column_indexes)
 
 class JoinTarget:
     def __init__(self, id, column_names):
@@ -113,9 +119,6 @@ def p_expression_join(p):
     for c1, c2 in zip(target1.column_names, target2.column_names):
         index1 = schema1.column_index(c1)
         index2 = schema2.column_index(c2)
-
-        assert index1 >= 0
-        assert index2 >= 0
         assert schema1.column_type(index1) == schema2.column_type(index2)
 
         join_attributes.append((index1, index2 + offset))
