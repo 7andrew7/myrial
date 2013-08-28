@@ -51,11 +51,11 @@ class LocalEvaluatorTests(unittest.TestCase):
       ['Employee', 'Department'])
 
     ex = Expression('JOIN', schema_out, children=[l1,l2],
-                    join_attributes=[('dept_id'),('id')])
+                    join_attributes=[(1,4)])
     actual = self.evaluator.evaluate_to_bag(ex)
 
-    expected = collections.Counter([e + d for e in self.employee_tuples,
-                                    d in self.department_tuples if
-                                    e[1] == d[0]])
+    expected = collections.Counter([e + d for e in self.employee_tuples
+                                    for d in self.department_tuples
+                                    if e[1] == d[0]])
     self.assertEqual(actual,expected)
 

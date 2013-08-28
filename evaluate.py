@@ -3,6 +3,7 @@
 import relation
 
 import collections
+import itertools
 
 class Expression:
     '''Representation of a myrial expression '''
@@ -38,6 +39,13 @@ class Evaluator:
     def join(self, expr, join_attributes):
         raise NotImplementedError()
 
+def columns_match(tpl, column_pairs):
+    '''Return whether tuple fields agree on a list of column pairs'''
+    for x,y in column_pairs:
+        if tpl[x] != tpl[y]:
+            return False
+    return True
+
 class LocalEvaluator(Evaluator):
     '''A local evaluator implemented entirely in python'''
 
@@ -57,6 +65,20 @@ class LocalEvaluator(Evaluator):
         for line in open(path):
             if LocalEvaluator.valid_input_str(line):
                 yield expr.schema.tuple_from_string(line[:-1])
+
+    def join(self, expr, join_attributes):
+        assert len(expr.children) == 2
+
+        # Evaluate the children
+        it1 = self.evaluate(expr.children[0])
+        it2 = self.evaluate(expr.children[1])
+
+        # Compute the cross product of the children and flatten
+        p1 = itertools.product(it1, it2)
+        p2 = (x + y for (x,y) in p1)
+
+        # Return tuples that match on the join conditions
+        return (tpl for tpl in p2 if columns_match(tpl, join_attributes))
 
 if __name__ == "__main__":
     ev = LocalEvaluator()
