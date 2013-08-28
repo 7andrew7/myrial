@@ -54,8 +54,8 @@ class Schema:
                 'Bad column count: schema=%s ; input=(%s)' % (str(self),
                                                               ','.join(toks)))
 
-        x = [column.atom_from_string(tok) for (column, tok) in
-             zip(self.columns, toks)]
+        x = (column.atom_from_string(tok) for (column, tok) in
+             zip(self.columns, toks))
         return tuple(x)
 
     def compatible(self, other):
