@@ -39,6 +39,14 @@ class Schema:
     def __init__(self, columns=[]):
         self.columns = columns
 
+    @classmethod
+    def from_strings(cls, strs):
+        '''Create a schema from an iterable set of strings
+
+        For example: Schema.from_strings(['salary:int', 'name:string'])
+        '''
+        return cls([Column.from_string(x) for x in strs])
+
     def __str__(self):
         cstrs = [str(c) for c in self.columns]
         return '(%s)' % ','.join(cstrs)
@@ -97,17 +105,12 @@ class Schema:
         return Schema(columns)
 
 if __name__ == "__main__":
-    colstrs1 = ['salary:int', 'name:string', 'id:int']
-    cols1 = [Column.from_string(x) for x in colstrs1]
-
-    s1 = Schema(cols1)
+    s1 = Schema.from_strings(['salary:int', 'name:string', 'id:int'])
     print s1
     print s1 == s1
     print s1.compatible(s1)
 
-    colstrs2 = ['salary1:int', 'name2:string', 'id2:int']
-    cols2 = [Column.from_string(x) for x in colstrs2]
-    s2 = Schema(cols2)
+    s2 = Schema.from_strings(['salary1:int', 'name2:string', 'id2:int'])
 
     print s2
     print s1 == s2
