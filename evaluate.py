@@ -17,9 +17,6 @@ class Expression:
         return "{%s kwargs=%s schema=%s children=[%s]}" % (
             self.type, str(self.kwargs), self.schema, ','.join(child_strs))
 
-class NotImplementedException(Exception):
-    pass
-
 class Evaluator:
     def evaluate(self, expr):
         '''Evaluate an expression
@@ -34,8 +31,12 @@ class Evaluator:
         '''Return a bag (collections.Counter instance) for the expression'''
         return collections.Counter(self.evaluate(expr))
 
+    # "abstract" evaluation methods below here
     def load(self, expr, path):
-        raise NotImplementedException()
+        raise NotImplementedError()
+
+    def join(self, expr, join_attributes):
+        raise NotImplementedError()
 
 class LocalEvaluator(Evaluator):
     '''A local evaluator implemented entirely in python'''
