@@ -1,4 +1,5 @@
 import evaluate
+import random
 import relation
 from evaluate import Expression
 
@@ -42,6 +43,16 @@ class LocalEvaluatorTests(unittest.TestCase):
     ex = Expression('LOAD', self.department_schema, path='departments.txt')
     actual = self.evaluator.evaluate_to_bag(ex)
     self.assertEqual(actual,self.department_tuples)
+
+  def test_table(self):
+    tuples = [(random.randint(0, 100), random.randint(0, 100))
+              for k in range(10)]
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+
+    ex = Expression('TABLE', schema, tuple_list=tuples)
+    actual = self.evaluator.evaluate_to_bag(ex)
+    expected = collections.Counter(tuples)
+    self.assertEqual(actual,expected)
 
   def test_join(self):
     l1 = Expression('LOAD', self.employee_schema, path='employees.txt')

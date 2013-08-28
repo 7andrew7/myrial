@@ -55,7 +55,11 @@ def p_expression_load(p):
 
 def p_expression_table(p):
     'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
-    p[0] = Expression('TABLE', p[6], value=p[3])
+    schema = p[6]
+    tuple_list = p[3]
+    for tup in tuple_list:
+        schema.validate_tuple(tup)
+    p[0] = Expression('TABLE', p[6], tuple_list=tuple_list)
 
 def p_expression_binary_set_operation(p):
     'expression : setop ID COMMA ID'

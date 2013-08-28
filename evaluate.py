@@ -64,20 +64,23 @@ class LocalEvaluator(Evaluator):
             return False
         return True
 
+    def __evaluate_children(self, children):
+        return [self.evaluate(c) for c in children]
+
     def load(self, expr, path):
         for line in open(path):
             if LocalEvaluator.valid_input_str(line):
                 yield expr.schema.tuple_from_string(line[:-1])
 
+    def table(self, expr, tuple_list):
+        return (t for t in tuple_list)
+
     def join(self, expr, join_attributes):
         assert len(expr.children) == 2
 
-        # Evaluate the children
-        it1 = self.evaluate(expr.children[0])
-        it2 = self.evaluate(expr.children[1])
-
         # Compute the cross product of the children and flatten
-        p1 = itertools.product(it1, it2)
+        cis = self.__evaluate_children(expr.children)
+        p1 = itertools.product(*cis)
         p2 = (x + y for (x,y) in p1)
 
         # Return tuples that match on the join conditions
@@ -85,9 +88,15 @@ class LocalEvaluator(Evaluator):
 
     def foreach(self, expr, column_indexes):
         assert len(expr.children) == 1
+        cis = self.__evaluate_children(expr.children)
 
         it = self.evaluate(expr.children[0])
-        return (tuple([tpl[i] for i in column_indexes]) for tpl in it)
+        return (tuple([tpl[i] for i in column_indexes]) for tpl in cis[0])
+
+    def union(self, expr):
+        assert len(expr.children) == 2
+        cis = self.__evaluate_children(expr.children)
+        return itertools.chain(*cis)
 
 if __name__ == "__main__":
     ev = LocalEvaluator()
