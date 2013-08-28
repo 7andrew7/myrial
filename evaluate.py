@@ -89,8 +89,6 @@ class LocalEvaluator(Evaluator):
     def foreach(self, expr, column_indexes):
         assert len(expr.children) == 1
         cis = self.__evaluate_children(expr.children)
-
-        it = self.evaluate(expr.children[0])
         return (tuple([tpl[i] for i in column_indexes]) for tpl in cis[0])
 
     def union(self, expr):
