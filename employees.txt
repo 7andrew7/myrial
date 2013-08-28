@@ -1,0 +1,8 @@
+# id dept_id name salary
+1	2	Bill Howe	25000
+2	1	Dan Halperin	90000
+3	1	Andrew Whitaker	5000
+4	2	Shumo Chu	150000
+5	1	Victor Almeida	50102
+6	3	Dan Suciu	51211
+7	1	Magdalena Balazinska	98121

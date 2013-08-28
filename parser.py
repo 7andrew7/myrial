@@ -5,24 +5,12 @@ import ply.yacc as yacc
 import relation
 import scanner
 from scanner import tokens
+from evaluate import Expression
 
 import sys
 
 # Map from identifier to expression objects
 symbols = {}
-
-class Expression:
-    '''Representation of a myrial expression '''
-    def  __init__(self, _type, schema, children=[], **kwargs):
-        self.type = _type
-        self.schema = schema
-        self.children = children
-        self.kwargs = kwargs
-
-    def __str__(self):
-        child_strs = [str(c) for c in self.children]
-        return "{%s kwargs=%s schema=%s children=[%s]}" % (
-            self.type, str(self.kwargs), self.schema, ','.join(child_strs))
 
 def p_statement_list(p):
     '''statement_list : statement_list statement
