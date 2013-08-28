@@ -1,0 +1,6 @@
+
+Emp = LOAD "employees.txt" AS (id:int, dept_id:int, name:string, salary:int);
+Dept = LOAD "departments.txt" AS (id:int, name:string, manager_id:int);
+
+A = JOIN Emp BY dept_id, Dept BY id;
+DUMP A;

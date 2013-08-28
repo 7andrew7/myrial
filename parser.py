@@ -2,6 +2,7 @@
 
 import ply.yacc as yacc
 
+import evaluate
 import relation
 import scanner
 from scanner import tokens
@@ -11,6 +12,8 @@ import sys
 
 # Map from identifier to expression objects
 symbols = {}
+
+evaluator = evaluate.LocalEvaluator()
 
 def p_statement_list(p):
     '''statement_list : statement_list statement
@@ -24,7 +27,9 @@ def p_statement_assign(p):
 
 def p_statement_dump(p):
     'statement : DUMP expression SEMI'
-    pass
+    result = evaluator.evaluate(p[2])
+    strs = (str(x) for x in result)
+    print '[%s]' % ','.join(strs)
 
 def p_statement_describe(p):
     'statement : DESCRIBE ID SEMI'
