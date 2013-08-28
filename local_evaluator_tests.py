@@ -79,3 +79,18 @@ class LocalEvaluatorTests(unittest.TestCase):
 
     expected = collections.Counter([(t[2], t[3]) for t in self.employee_tuples])
     self.assertEqual(actual, expected)
+
+  def test_union(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+    t1 = [(random.randint(0, 100), random.randint(0, 100))
+          for k in range(10)]
+    t2 = [(random.randint(0, 100), random.randint(0, 100))
+          for k in range(10)]
+
+    c1 = Expression('TABLE', schema, tuple_list=t1)
+    c2 = Expression('TABLE', schema, tuple_list=t2)
+    ex = Expression('UNION', schema, children=[c1,c2])
+
+    actual = self.evaluator.evaluate_to_bag(ex)
+    expected = collections.Counter(t1 + t2)
+    self.assertEqual(actual, expected)
