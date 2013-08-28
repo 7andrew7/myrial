@@ -2,27 +2,15 @@
 
 import types
 
-class PrimitiveType:
-    mappings = {'int' : types.IntType, 'string' : types.StringType}
-
-    def __init__(self, type):
-        assert type in PrimitiveType.mappings.keys()
-        self.type = type
-
-    def __str__(self):
-        return self.type
-
-    def __eq__(self, other):
-        return self.type == other.type
-
-    def __ne__(self, other):
-        return self.type != other.type
-
-    def get_python_type(self):
-        return PrimitiveType.mappings[self.type]
+class SchemaTypeException(Exception):
+    pass
 
 class Column:
+    mappings = {'int' : types.IntType, 'string' : types.StringType}
+
     def __init__(self, name, _type):
+        assert _type in Column.mappings.keys()
+
         self.name = name
         self.type = _type
 
@@ -31,12 +19,21 @@ class Column:
 
     @classmethod
     def from_string(cls, s):
+        '''Create a column from a colon-delimited input string
+
+        For example: Column.from_string('salary:int')
+        '''
+
         toks = s.split(':')
         assert len(toks) == 2
         return cls(*toks)
 
     def get_python_type(self):
-        return self.type.get_python_type()
+        return Column.mappings[self.type]
+
+    def atom_from_string(self, s):
+        '''Convert the string argument into a python primitive'''
+        return self.get_python_type()(s)
 
 class Schema:
     def __init__(self, columns=[]):
@@ -48,6 +45,18 @@ class Schema:
 
     def __eq__(self, other):
         return self.columns == other.columns
+
+    def tuple_from_string(self, s, delimeter='\t'):
+        '''Convert a string into a tuple with the given schema'''
+        toks = s.split(delimeter)
+        if len(toks) != len(self.columns):
+            raise SchemaTypeException(
+                'Bad column count: schema=%s ; input=(%s)' % (str(self),
+                                                              ','.join(toks)))
+
+        x = [column.atom_from_string(tok) for (column, tok) in
+             zip(self.columns, toks)]
+        return tuple(x)
 
     def compatible(self, other):
         '''Return whether two schemas are compatible.
@@ -107,3 +116,6 @@ if __name__ == "__main__":
 
     s3 = Schema.join([s1, s2], ['A', 'B'])
     print s3
+
+    t = s2.tuple_from_string('-23423\tBob Rosencrantz\t32003')
+    print t
