@@ -76,7 +76,6 @@ class Schema:
             return False
         for c1, c2 in zip(self.columns, other.columns):
             if c1.type != c2.type:
-                print '%s  %s' % (c1.type, c2.type)
                 return False
         return True
 
