@@ -96,6 +96,18 @@ class LocalEvaluator(Evaluator):
         cis = self.__evaluate_children(expr.children)
         return itertools.chain(*cis)
 
+    def intersect(self, expr):
+        assert len(expr.children) == 2
+        cis = self.__evaluate_children(expr.children)
+        # ...
+
+    def diff(self, expr):
+        assert len(expr.children) == 2
+        cis = self.__evaluate_children(expr.children)
+
+        bags = [collections.Counter(ci) for ci in cis]
+        return (bags[0] - bags[1]).elements()
+
 if __name__ == "__main__":
     ev = LocalEvaluator()
 

@@ -94,3 +94,20 @@ class LocalEvaluatorTests(unittest.TestCase):
     actual = self.evaluator.evaluate_to_bag(ex)
     expected = collections.Counter(t1 + t2)
     self.assertEqual(actual, expected)
+
+  def test_diff(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+
+    t0 = [(2*k, 2*k + 1) for k in range(50)]
+    t1 = t0 + t0
+    t2 = t0[::2]
+
+    c1 = Expression('TABLE', schema, tuple_list=t1)
+    c2 = Expression('TABLE', schema, tuple_list=t2)
+    ex = Expression('DIFF', schema, children=[c1,c2])
+
+    actual = self.evaluator.evaluate_to_bag(ex)
+    self.assertEqual(sum(actual.values()), 75)
+
+    expected = collections.Counter(t0 + t0[1::2])
+    self.assertEqual(actual, expected)
