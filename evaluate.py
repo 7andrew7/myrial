@@ -99,7 +99,8 @@ class LocalEvaluator(Evaluator):
     def intersect(self, expr):
         assert len(expr.children) == 2
         cis = self.__evaluate_children(expr.children)
-        # ...
+        bags = [collections.Counter(ci) for ci in cis]
+        return (bags[0] & bags[1]).elements()
 
     def diff(self, expr):
         assert len(expr.children) == 2

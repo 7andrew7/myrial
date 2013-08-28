@@ -111,3 +111,19 @@ class LocalEvaluatorTests(unittest.TestCase):
 
     expected = collections.Counter(t0 + t0[1::2])
     self.assertEqual(actual, expected)
+
+  def test_intersect(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+
+    t1 = [(2*k, 2*k + 1) for k in range(40)]
+    t2 = t1[::4]
+
+    c1 = Expression('TABLE', schema, tuple_list=t1)
+    c2 = Expression('TABLE', schema, tuple_list=t2)
+    ex = Expression('INTERSECT', schema, children=[c1,c2])
+
+    actual = self.evaluator.evaluate_to_bag(ex)
+    self.assertEqual(sum(actual.values()), 10)
+
+    expected = collections.Counter(t2)
+    self.assertEqual(actual, expected)
