@@ -18,6 +18,12 @@ class Expression:
         return "{%s kwargs=%s schema=%s children=[%s]}" % (
             self.type, str(self.kwargs), self.schema, ','.join(child_strs))
 
+
+RelationKey = collections.namedtuple('RelationKey',
+                                     ['user', 'program', 'relation'])
+
+StoredRelation = collections.namedtuple('StoredRelation', ['bag', 'schema'])
+
 class Evaluator:
     def evaluate(self, expr):
         '''Evaluate an expression
@@ -32,16 +38,6 @@ class Evaluator:
         '''Return a bag (collections.Counter instance) for the expression'''
         return collections.Counter(self.evaluate(expr))
 
-    # "abstract" evaluation methods below here
-    def load(self, expr, path):
-        raise NotImplementedError()
-
-    def join(self, expr, join_attributes):
-        raise NotImplementedError()
-
-    def foreach(self, expr, column_indexes):
-        raise NotImplementedError()
-
 def columns_match(tpl, column_pairs):
     '''Return whether tuple fields agree on a list of column pairs'''
     for x,y in column_pairs:
@@ -53,10 +49,11 @@ class LocalEvaluator(Evaluator):
     '''A local evaluator implemented entirely in python'''
 
     def __init__(self):
-        pass
+        # Mapping from RelationKey to StoredRelation instances
+        self.db = {}
 
     @staticmethod
-    def valid_input_str(x):
+    def __valid_input_str(x):
         y = x.strip()
         if len(y) == 0:
             return False
@@ -69,7 +66,7 @@ class LocalEvaluator(Evaluator):
 
     def load(self, expr, path):
         for line in open(path):
-            if LocalEvaluator.valid_input_str(line):
+            if LocalEvaluator.__valid_input_str(line):
                 yield expr.schema.tuple_from_string(line[:-1])
 
     def table(self, expr, tuple_list):
@@ -113,6 +110,32 @@ class LocalEvaluator(Evaluator):
 
         bags = [collections.Counter(ci) for ci in cis]
         return (bags[0] - bags[1]).elements()
+
+    def scan(self, expr, relation_key):
+        assert len(expr.children) == 0
+        bag = self.db[relation_key].bag
+        return bag.elements()
+
+    def get_schema(self, relation_key):
+        return self.db[relation_key].schema
+
+    def replace(self, expr, relation_key):
+        assert len(expr.children) == 1
+        bag = self.evaluate_to_bag(expr.children[0])
+        self.db[relation_key] = StoredRelation(
+            bag=bag, schema=expr.children[0].schema)
+
+    def insert(self, expr, relation_key):
+        assert len(expr.children) == 1
+
+        if not relation_key in self.db:
+            self.db[relation_key] = StoredRelation(
+                bag=collections.Counter(), schema=expr.children[0].schema)
+
+        bag, schema = self.db[relation_key]
+        assert schema.compatible(expr.children[0].schema)
+
+        bag.update(self.evaluate_to_bag(expr.children[0]))
 
 if __name__ == "__main__":
     ev = LocalEvaluator()

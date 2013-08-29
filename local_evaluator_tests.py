@@ -140,3 +140,39 @@ class LocalEvaluatorTests(unittest.TestCase):
 
     expected = collections.Counter(t1[:8])
     self.assertEqual(actual, expected)
+
+  def test_insert_replace_scan(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+    t1 = [(2*k, 2*k + 1) for k in range(40)]
+    e1 = Expression('TABLE', schema, tuple_list=t1)
+    key = evaluate.RelationKey('andrew', 'foo.exe', 'table1')
+
+    # Perform an initial insertion to create the table
+    i1 = Expression('INSERT', schema=None, children=[e1], relation_key=key)
+    self.evaluator.evaluate(i1)
+
+    self.assertEqual(self.evaluator.get_schema(key), schema)
+
+    s1 = Expression('SCAN', schema, relation_key=key)
+    a1 = self.evaluator.evaluate_to_bag(s1)
+    self.assertEqual(a1, collections.Counter(t1))
+
+    # Add some more stuff
+    t2 = [(2*k, 2*k + 1) for k in range(100, 140)]
+    e2 = Expression('TABLE', schema, tuple_list=t2)
+    i2 = Expression('INSERT', schema=None, children=[e2], relation_key=key)
+    self.evaluator.evaluate(i2)
+
+    self.assertEqual(self.evaluator.get_schema(key), schema)
+    a2 = self.evaluator.evaluate_to_bag(s1)
+    self.assertEqual(a2, collections.Counter(t1 + t2))
+
+    # Outright replacement
+    t3 = [(2*k, 2*k + 1) for k in range(200, 210)]
+    e3 = Expression('TABLE', schema, tuple_list=t3)
+    r3 = Expression('REPLACE', schema=None, children=[e3], relation_key=key)
+    self.evaluator.evaluate(r3)
+
+    self.assertEqual(self.evaluator.get_schema(key), schema)
+    a3 = self.evaluator.evaluate_to_bag(s1)
+    self.assertEqual(a3, collections.Counter(t3))
