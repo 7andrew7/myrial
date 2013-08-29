@@ -14,11 +14,14 @@ import sys
 JoinTarget = collections.namedtuple('JoinTarget',['id', 'column_names'])
 
 class Parser:
-    def __init__(self):
+    def __init__(self, out=sys.stdout, log=yacc.PlyLogger(sys.stderr)):
         # Map from identifier to expression objects/trees
         self.symbols = {}
         self.evaluator = evaluate.LocalEvaluator()
         self.tokens = scanner.tokens
+
+        self.out  = out
+        self.log = log
 
     def p_statement_list(self, p):
         '''statement_list : statement_list statement
@@ -33,17 +36,17 @@ class Parser:
         'statement : DUMP expression SEMI'
         result = self.evaluator.evaluate(p[2])
         strs = (str(x) for x in result)
-        print '[%s]' % ','.join(strs)
+        self.out.write('[%s]\n' % ','.join(strs))
 
     def p_statement_describe(self, p):
         'statement : DESCRIBE ID SEMI'
         ex = self.symbols[p[2]]
-        print '%s : %s' % (p[2], str(ex.schema))
+        self.out.write('%s : %s\n' % (p[2], str(ex.schema)))
 
     def p_statement_explain(self, p):
         'statement : EXPLAIN ID SEMI'
         ex = self.symbols[p[2]]
-        print '%s : %s' % (p[2], str(ex))
+        self.out.write('%s : %s\n' % (p[2], str(ex)))
 
     def p_statement_dowhile(self, p):
         'statement : DO statement_list WHILE expression SEMI'
@@ -224,7 +227,7 @@ class Parser:
         parser.parse(s, lexer=scanner.lexer, tracking=True)
 
     def p_error(self, p):
-        print "Syntax error: %s" %  str(p)
+        self.log.error("Syntax error: %s" %  str(p))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
