@@ -5,7 +5,7 @@ import relation
 import collections
 import itertools
 
-class Expression:
+class Operation:
     '''Representation of a myrial expression '''
     def  __init__(self, _type, schema, children=[], **kwargs):
         self.type = _type
@@ -24,7 +24,7 @@ RelationKey = collections.namedtuple('RelationKey',
 
 StoredRelation = collections.namedtuple('StoredRelation', ['bag', 'schema'])
 
-class Evaluator:
+class Database:
     def evaluate(self, expr):
         '''Evaluate an expression
 
@@ -45,7 +45,7 @@ def columns_match(tpl, column_pairs):
             return False
     return True
 
-class LocalEvaluator(Evaluator):
+class LocalDatabase(Database):
     '''A local evaluator implemented entirely in python'''
 
     def __init__(self):
@@ -66,7 +66,7 @@ class LocalEvaluator(Evaluator):
 
     def load(self, expr, path):
         for line in open(path):
-            if LocalEvaluator.__valid_input_str(line):
+            if LocalDatabase.__valid_input_str(line):
                 yield expr.schema.tuple_from_string(line[:-1])
 
     def table(self, expr, tuple_list):
@@ -136,11 +136,3 @@ class LocalEvaluator(Evaluator):
         assert schema.compatible(expr.children[0].schema)
 
         bag.update(self.evaluate_to_bag(expr.children[0]))
-
-if __name__ == "__main__":
-    ev = LocalEvaluator()
-
-    schema = relation.Schema.from_strings(['id:int','dept_id:int',
-                                           'name:string','salary:int'])
-    ex = Expression('LOAD', schema, path='employees.txt')
-    print(ev.evaluate_to_bag(ex))

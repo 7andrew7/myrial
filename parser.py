@@ -3,12 +3,12 @@
 import ply.yacc as yacc
 
 import collections
-import evaluate
+import db
 import random
 import relation
 import scanner
 
-from evaluate import Expression
+from db import Operation
 
 import sys
 
@@ -19,7 +19,7 @@ class Parser:
                  eager_evaluation=False):
         # Map from identifier to expression objects/trees
         self.symbols = {}
-        self.evaluator = evaluate.LocalEvaluator()
+        self.db = db.LocalDatabase()
         self.tokens = scanner.tokens
 
         self.out  = out
@@ -43,19 +43,19 @@ class Parser:
             key = evaluate.RelationKey(
                 user='system', program='cached_assignment',
                 relation=_id + str(random.randint(0, 0x1000000000)))
-            insert = Expression('INSERT', schema=None, children=[child_expr],
+            insert = Operation('INSERT', schema=None, children=[child_expr],
                                 relation_key=key)
-            self.evaluator.evaluate(insert)
+            self.db.evaluate(insert)
 
             # Re-write the expression to be a scan of the materialized table
-            self.symbols[_id] = Expression('SCAN', schema=child_expr.schema,
+            self.symbols[_id] = Operation('SCAN', schema=child_expr.schema,
                                            children=[], relation_key=key)
         else:
             self.symbols[_id] = child_expr
 
     def p_statement_dump(self, p):
         'statement : DUMP expression SEMI'
-        result = self.evaluator.evaluate(p[2])
+        result = self.db.evaluate(p[2])
         strs = (str(x) for x in result)
         self.out.write('[%s]\n' % ','.join(strs))
 
@@ -79,7 +79,7 @@ class Parser:
 
     def p_expression_load(self, p):
         'expression : LOAD STRING_LITERAL AS schema'
-        p[0] = Expression('LOAD', p[4], path=p[2])
+        p[0] = Operation('LOAD', p[4], path=p[2])
 
     def p_expression_table(self, p):
         'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
@@ -87,12 +87,12 @@ class Parser:
         tuple_list = p[3]
         for tup in tuple_list:
             schema.validate_tuple(tup)
-        p[0] = Expression('TABLE', p[6], tuple_list=tuple_list)
+        p[0] = Operation('TABLE', p[6], tuple_list=tuple_list)
 
     def p_expression_limit(self, p):
         'expression : LIMIT ID COMMA INTEGER_LITERAL'
         ex = self.symbols[p[2]]
-        p[0] = Expression('LIMIT', ex.schema, children=[ex], count=p[4])
+        p[0] = Operation('LIMIT', ex.schema, children=[ex], count=p[4])
 
     def p_expression_binary_set_operation(self, p):
         'expression : setop ID COMMA ID'
@@ -100,7 +100,7 @@ class Parser:
         ex2 = self.symbols[p[4]]
         assert ex1.schema.compatible(ex2.schema)
 
-        p[0] = Expression(p[1], ex1.schema, children=[ex1, ex2])
+        p[0] = Operation(p[1], ex1.schema, children=[ex1, ex2])
 
     def p_setop(self, p):
         '''setop : INTERSECT
@@ -125,7 +125,7 @@ class Parser:
             schema_out = p[7]
 
         column_indexes = [schema_in.column_index(c) for c in p[5]]
-        p[0] = Expression('FOREACH', schema_out, children=[ex],
+        p[0] = Operation('FOREACH', schema_out, children=[ex],
                           column_indexes=column_indexes)
 
     def p_expression_join(self, p):
@@ -157,7 +157,7 @@ class Parser:
         schema_out = relation.Schema.join([exp1.schema, exp2.schema],
                                           [target1.id, target2.id])
 
-        p[0] = Expression('JOIN', schema_out, children=[exp1, exp2],
+        p[0] = Operation('JOIN', schema_out, children=[exp1, exp2],
                           join_attributes=join_attributes)
 
     def p_join_argument_list(self, p):
