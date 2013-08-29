@@ -2,237 +2,235 @@
 
 import ply.yacc as yacc
 
+import collections
 import evaluate
 import relation
 import scanner
-from scanner import tokens
+
 from evaluate import Expression
 
 import sys
 
-# Map from identifier to expression objects
-symbols = {}
+JoinTarget = collections.namedtuple('JoinTarget',['id', 'column_names'])
 
-evaluator = evaluate.LocalEvaluator()
+class Parser:
+    def __init__(self):
+        # Map from identifier to expression objects/trees
+        self.symbols = {}
+        self.evaluator = evaluate.LocalEvaluator()
+        self.tokens = scanner.tokens
 
-def p_statement_list(p):
-    '''statement_list : statement_list statement
-                      | statement'''
-    pass
+    def p_statement_list(self, p):
+        '''statement_list : statement_list statement
+                          | statement'''
+        pass
 
-def p_statement_assign(p):
-    'statement : ID EQUALS expression SEMI'
-    global symbols
-    symbols[p[1]] = p[3]
+    def p_statement_assign(self, p):
+        'statement : ID EQUALS expression SEMI'
+        self.symbols[p[1]] = p[3]
 
-def p_statement_dump(p):
-    'statement : DUMP expression SEMI'
-    result = evaluator.evaluate(p[2])
-    strs = (str(x) for x in result)
-    print '[%s]' % ','.join(strs)
+    def p_statement_dump(self, p):
+        'statement : DUMP expression SEMI'
+        result = self.evaluator.evaluate(p[2])
+        strs = (str(x) for x in result)
+        print '[%s]' % ','.join(strs)
 
-def p_statement_describe(p):
-    'statement : DESCRIBE ID SEMI'
-    ex = symbols[p[2]]
-    print '%s : %s' % (p[2], str(ex.schema))
+    def p_statement_describe(self, p):
+        'statement : DESCRIBE ID SEMI'
+        ex = self.symbols[p[2]]
+        print '%s : %s' % (p[2], str(ex.schema))
 
-def p_statement_explain(p):
-    'statement : EXPLAIN ID SEMI'
-    ex = symbols[p[2]]
-    print '%s : %s' % (p[2], str(ex))
+    def p_statement_explain(self, p):
+        'statement : EXPLAIN ID SEMI'
+        ex = self.symbols[p[2]]
+        print '%s : %s' % (p[2], str(ex))
 
-def p_statement_dowhile(p):
-    'statement : DO statement_list WHILE expression SEMI'
-    pass
+    def p_statement_dowhile(self, p):
+        'statement : DO statement_list WHILE expression SEMI'
+        pass
 
-def p_expression_id(p):
-    'expression : ID'
-    p[0] = symbols[p[1]]
+    def p_expression_id(self, p):
+        'expression : ID'
+        p[0] = self.symbols[p[1]]
 
-def p_expression_load(p):
-    'expression : LOAD STRING_LITERAL AS schema'
-    p[0] = Expression('LOAD', p[4], path=p[2])
+    def p_expression_load(self, p):
+        'expression : LOAD STRING_LITERAL AS schema'
+        p[0] = Expression('LOAD', p[4], path=p[2])
 
-def p_expression_table(p):
-    'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
-    schema = p[6]
-    tuple_list = p[3]
-    for tup in tuple_list:
-        schema.validate_tuple(tup)
-    p[0] = Expression('TABLE', p[6], tuple_list=tuple_list)
+    def p_expression_table(self, p):
+        'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
+        schema = p[6]
+        tuple_list = p[3]
+        for tup in tuple_list:
+            schema.validate_tuple(tup)
+        p[0] = Expression('TABLE', p[6], tuple_list=tuple_list)
 
-def p_expression_limit(p):
-    'expression : LIMIT ID COMMA INTEGER_LITERAL'
-    ex = symbols[p[2]]
-    p[0] = Expression('LIMIT', ex.schema, children=[ex], count=p[4])
+    def p_expression_limit(self, p):
+        'expression : LIMIT ID COMMA INTEGER_LITERAL'
+        ex = self.symbols[p[2]]
+        p[0] = Expression('LIMIT', ex.schema, children=[ex], count=p[4])
 
-def p_expression_binary_set_operation(p):
-    'expression : setop ID COMMA ID'
-    ex1 = symbols[p[2]]
-    ex2 = symbols[p[4]]
-    assert ex1.schema.compatible(ex2.schema)
+    def p_expression_binary_set_operation(self, p):
+        'expression : setop ID COMMA ID'
+        ex1 = self.symbols[p[2]]
+        ex2 = self.symbols[p[4]]
+        assert ex1.schema.compatible(ex2.schema)
 
-    # Use the schema from expression1
-    p[0] = Expression(p[1], ex1.schema, children=[ex1, ex2])
+        p[0] = Expression(p[1], ex1.schema, children=[ex1, ex2])
 
-def p_setop(p):
-    '''setop : INTERSECT
-             | DIFF
-             | UNION'''
-    p[0] = p[1]
+    def p_setop(self, p):
+        '''setop : INTERSECT
+                 | DIFF
+                 | UNION'''
+        p[0] = p[1]
 
-def p_expression_foreach(p):
-    'expression : FOREACH ID EMIT LPAREN column_name_list RPAREN optional_as'
+    def p_expression_foreach(self, p):
+        'expression : FOREACH ID EMIT LPAREN column_name_list RPAREN \
+        optional_as'
 
-    # TODO: we should allow duplicate columns to be selected, as long sa
-    # the user provides a rename schema
+        # TODO: we should allow duplicate columns to be selected, as long as
+        # the user provides a rename schema
 
-    ex = symbols[p[2]]
-    schema_in = ex.schema
-    schema_out = ex.schema.project(p[5])
+        ex = self.symbols[p[2]]
+        schema_in = ex.schema
+        schema_out = ex.schema.project(p[5])
 
-    # Rename the columns, if requested
-    if p[7]:
-        assert schema_out.compatible(p[7])
-        schema_out = p[7]
+        # Rename the columns, if requested
+        if p[7]:
+            assert schema_out.compatible(p[7])
+            schema_out = p[7]
 
-    column_indexes = [schema_in.column_index(c) for c in p[5]]
-    p[0] = Expression('FOREACH', schema_out, children=[ex],
-                      column_indexes=column_indexes)
+        column_indexes = [schema_in.column_index(c) for c in p[5]]
+        p[0] = Expression('FOREACH', schema_out, children=[ex],
+                          column_indexes=column_indexes)
 
-class JoinTarget:
-    def __init__(self, id, column_names):
-        self.id = id
-        self.column_names = column_names
+    def p_expression_join(self, p):
+        'expression : JOIN join_argument COMMA join_argument'
+        target1 = p[2]
+        target2 = p[4]
 
-def p_expression_join(p):
-    'expression : JOIN join_argument COMMA join_argument'
-    global symbols
+        # Look up the expression and schema for the given identifiers
+        exp1 = self.symbols[target1.id]
+        exp2 = self.symbols[target2.id]
+        schema1 = exp1.schema
+        schema2 = exp2.schema
 
-    target1 = p[2]
-    target2 = p[4]
+        # Each target must refer to the same number of join attributes
+        assert len(target1.column_names) == len(target2.column_names)
 
-    # Look up the expression and schema for the given identifiers
-    exp1 = symbols[target1.id]
-    exp2 = symbols[target2.id]
-    schema1 = exp1.schema
-    schema2 = exp2.schema
+        # Compute pairs of join attributes that must match in the merged schema.
+        # Also, enforce type safety.
+        join_attributes = []
+        offset = exp1.schema.num_columns()
+        for c1, c2 in zip(target1.column_names, target2.column_names):
+            index1 = schema1.column_index(c1)
+            index2 = schema2.column_index(c2)
+            assert schema1.column_type(index1) == schema2.column_type(index2)
 
-    # Each target must refer to the same number of join attributes
-    assert len(target1.column_names) == len(target2.column_names)
+            join_attributes.append((index1, index2 + offset))
 
-    # Compute pairs of join attributes that must match in the merged schema.
-    # Also, enforce type safety.
-    join_attributes = []
-    offset = exp1.schema.num_columns()
-    for c1, c2 in zip(target1.column_names, target2.column_names):
-        index1 = schema1.column_index(c1)
-        index2 = schema2.column_index(c2)
-        assert schema1.column_type(index1) == schema2.column_type(index2)
+        # compute the schema of the merged relation
+        schema_out = relation.Schema.join([exp1.schema, exp2.schema],
+                                          [target1.id, target2.id])
 
-        join_attributes.append((index1, index2 + offset))
+        p[0] = Expression('JOIN', schema_out, children=[exp1, exp2],
+                          join_attributes=join_attributes)
 
-    # compute the schema of the merged relation
-    schema_out = relation.Schema.join([exp1.schema, exp2.schema],
-                                      [target1.id, target2.id])
+    def p_join_argument_list(self, p):
+        'join_argument : ID BY LPAREN column_name_list RPAREN'
+        p[0] = JoinTarget(p[1], p[4])
 
-    p[0] = Expression('JOIN', schema_out, children=[exp1, exp2],
-                      join_attributes=join_attributes)
+    def p_join_argument_single(self, p):
+        'join_argument : ID BY column_name'
+        p[0] = JoinTarget(p[1], (p[3],))
 
-def p_join_argument_list(p):
-    'join_argument : ID BY LPAREN column_name_list RPAREN'
-    p[0] = JoinTarget(p[1], p[4])
+    def p_optional_as(self, p):
+        '''optional_as : AS schema
+                       | empty'''
+        if len(p) == 3:
+            p[0] = p[2]
+        else:
+            p[0] = None
 
-def p_join_argument_single(p):
-    'join_argument : ID BY column_name'
-    p[0] = JoinTarget(p[1], (p[3],))
+    def p_schema(self, p):
+        'schema : LPAREN column_def_list RPAREN'
+        p[0] = relation.Schema(p[2])
 
-def p_optional_as(p):
-    '''optional_as : AS schema
-                   | empty'''
-    if len(p) == 3:
+    def p_column_def_list(self, p):
+        '''column_def_list : column_def_list COMMA column_def
+                           | column_def'''
+        if len(p) == 4:
+            cols = p[1] + [p[3]]
+        else:
+            cols = [p[1]]
+        p[0] = cols
+
+    def p_column_def(self, p):
+        'column_def : column_name COLON type_name'
+        p[0] = relation.Column(p[1], p[3])
+
+    def p_column_name_list(self, p):
+        '''column_name_list : column_name_list COMMA column_name
+                            | column_name'''
+        if len(p) == 4:
+            p[0] = p[1] + (p[3],)
+        else:
+            p[0] = (p[1],)
+
+    def p_column_namea_dotted(self, p):
+        'column_name : column_name DOT ID'
+        p[0] = p[1] + '.' + p[3]
+
+    def p_column_name_simple(self, p):
+        'column_name : ID'
+        p[0] = p[1]
+
+    def p_empty(self, p):
+        'empty :'
+        pass
+
+    def p_tuple_list(self, p):
+        '''tuple_list : tuple_list COMMA tuple
+                      | tuple'''
+        if len(p) == 4:
+            p[0] = p[1] + [p[3]]
+        else:
+            p[0] = [p[1]]
+
+    def p_tuple(self, p):
+        'tuple : LPAREN literal_list RPAREN'
         p[0] = p[2]
-    else:
-        p[0] = None
 
-def p_schema(p):
-    'schema : LPAREN column_def_list RPAREN'
-    p[0] = relation.Schema(p[2])
+    def p_literal_list(self, p):
+        '''literal_list : literal_list COMMA literal
+                        | literal'''
+        if len(p) == 4:
+            p[0] = p[1] + (p[3],)
+        else:
+            p[0] = (p[1],)
 
-def p_column_def_list(p):
-    '''column_def_list : column_def_list COMMA column_def
-                       | column_def'''
-    if len(p) == 4:
-        cols = p[1] + [p[3]]
-    else:
-        cols = [p[1]]
-    p[0] = cols
+    def p_literal(self, p):
+        '''literal : INTEGER_LITERAL
+                   | STRING_LITERAL'''
+        p[0] = p[1]
 
-def p_column_def(p):
-    'column_def : column_name COLON type_name'
-    p[0] = relation.Column(p[1], p[3])
+    def p_type_name(self, p):
+        '''type_name : STRING
+                     | INT'''
+        p[0] = p[1]
 
-def p_column_name_list(p):
-    '''column_name_list : column_name_list COMMA column_name
-                        | column_name'''
-    if len(p) == 4:
-        p[0] = p[1] + (p[3],)
-    else:
-        p[0] = (p[1],)
+    def parse(self, s):
+        parser = yacc.yacc(module=self, debug=True)
+        parser.parse(s, lexer=scanner.lexer, tracking=True)
 
-def p_column_name_dotted(p):
-    'column_name : column_name DOT ID'
-    p[0] = p[1] + '.' + p[3]
-
-def p_column_name_simple(p):
-    'column_name : ID'
-    p[0] = p[1]
-
-def p_empty(p):
-    'empty :'
-    pass
-
-def p_tuple_list(p):
-    '''tuple_list : tuple_list COMMA tuple
-                  | tuple'''
-    if len(p) == 4:
-        p[0] = p[1] + [p[3]]
-    else:
-        p[0] = [p[1]]
-
-def p_tuple(p):
-    'tuple : LPAREN literal_list RPAREN'
-    p[0] = p[2]
-
-def p_literal_list(p):
-    '''literal_list : literal_list COMMA literal
-                    | literal'''
-    if len(p) == 4:
-        p[0] = p[1] + (p[3],)
-    else:
-        p[0] = (p[1],)
-
-def p_literal(p):
-    '''literal : INTEGER_LITERAL
-               | STRING_LITERAL'''
-    p[0] = p[1]
-
-def p_type_name(p):
-    '''type_name : STRING
-                 | INT'''
-    p[0] = p[1]
-
-def parse(s):
-    parser = yacc.yacc(debug=True)
-    parser.parse(s, tracking=True)
-
-def p_error(p):
-    print "Syntax error: %s" %  str(p)
+    def p_error(self, p):
+        print "Syntax error: %s" %  str(p)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'No input file provided'
         sys.exit(1)
 
+    parser = Parser()
     with open(sys.argv[1]) as fh:
-        parse(fh.read())
+        parser.parse(fh.read())

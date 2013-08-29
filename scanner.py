@@ -88,4 +88,4 @@ t_ignore  = ' \t\v'
 def t_error(t):
     print "Illegal character token: " + str(t)
 
-lex.lex()
+lexer = lex.lex()
