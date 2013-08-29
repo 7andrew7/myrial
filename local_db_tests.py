@@ -1,4 +1,4 @@
-import evaluate
+import db
 import random
 import relation
 from db import Operation
@@ -12,7 +12,7 @@ Unit tests of various expression evaluators
 
 class LocalDatabaseTests(unittest.TestCase):
   def setUp(self):
-    self.evaluator = evaluate.LocalDatabase()
+    self.evaluator = db.LocalDatabase()
     self.employee_schema = relation.Schema.from_strings(
       ['id:int','dept_id:int', 'name:string','salary:int'])
     self.department_schema = relation.Schema.from_strings(
@@ -141,11 +141,24 @@ class LocalDatabaseTests(unittest.TestCase):
     expected = collections.Counter(t1[:8])
     self.assertEqual(actual, expected)
 
+  def test_distinct(self):
+    schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
+    t1 = [(2*k, 2*k + 1) for k in range(40)]
+    t2 = t1 * 2
+    c1 = Operation('TABLE', schema, tuple_list=t2)
+
+    ex = Operation('DISTINCT', schema, children=[c1])
+
+    actual = self.evaluator.evaluate_to_bag(ex)
+    self.assertEqual(sum(actual.values()), len(t1))
+    expected = collections.Counter(t1)
+    self.assertEqual(actual, expected)
+
   def test_insert_replace_scan(self):
     schema = relation.Schema.from_strings(['f1:int', 'f2:int'])
     t1 = [(2*k, 2*k + 1) for k in range(40)]
     e1 = Operation('TABLE', schema, tuple_list=t1)
-    key = evaluate.RelationKey('andrew', 'foo.exe', 'table1')
+    key = db.RelationKey('andrew', 'foo.exe', 'table1')
 
     # Perform an initial insertion to create the table
     i1 = Operation('INSERT', schema=None, children=[e1], relation_key=key)

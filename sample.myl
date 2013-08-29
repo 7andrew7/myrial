@@ -13,7 +13,7 @@ Z = Y;
 DESCRIBE Z;
 
 -- Re-assign Z to something else
-Z = UNION X, Y;
+Z = DISTINCT UNION X, Y;
 EXPLAIN Z;
 
 Q = LIMIT X, 5;

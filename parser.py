@@ -94,6 +94,10 @@ class Parser:
         ex = self.symbols[p[2]]
         p[0] = Operation('LIMIT', ex.schema, children=[ex], count=p[4])
 
+    def p_expression_distinct(self, p):
+        'expression : DISTINCT expression'
+        p[0] = Operation('DISTINCT', p[2].schema, children=[p[2]])
+
     def p_expression_binary_set_operation(self, p):
         'expression : setop ID COMMA ID'
         ex1 = self.symbols[p[2]]

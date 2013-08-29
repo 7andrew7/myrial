@@ -88,6 +88,12 @@ class LocalDatabase(Database):
         cis = self.__evaluate_children(expr.children)
         return itertools.islice(cis[0], count)
 
+    def distinct(self, expr):
+        assert len(expr.children) == 1
+        cis = self.__evaluate_children(expr.children)
+        s = set(cis[0])
+        return iter(s)
+
     def foreach(self, expr, column_indexes):
         assert len(expr.children) == 1
         cis = self.__evaluate_children(expr.children)

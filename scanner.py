@@ -7,7 +7,7 @@ import ply.lex as lex
 reserved = ['LOAD', 'STORE', 'LIMIT', 'SHUFFLE', 'SEQUENCE', 'CROSS', 'JOIN',
             'GROUP', 'FOREACH', 'EMIT', 'AS', 'DIFF', 'UNION', 'INTERSECT',
             'DUMP', 'FILTER', 'TABLE', 'ORDER', 'ASC', 'DESC', 'BY', 'WHILE',
-            'INT', 'STRING', 'DESCRIBE', 'DO', 'EXPLAIN']
+            'INT', 'STRING', 'DESCRIBE', 'DO', 'EXPLAIN', 'DISTINCT']
 
 # Token types; required by ply to have this variable name
 tokens = ['LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'PLUS', 'MINUS', 'TIMES',
