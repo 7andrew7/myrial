@@ -4,6 +4,7 @@ import ply.yacc as yacc
 
 import collections
 import evaluate
+import random
 import relation
 import scanner
 
@@ -14,7 +15,8 @@ import sys
 JoinTarget = collections.namedtuple('JoinTarget',['id', 'column_names'])
 
 class Parser:
-    def __init__(self, out=sys.stdout, log=yacc.PlyLogger(sys.stderr)):
+    def __init__(self, out=sys.stdout, log=yacc.PlyLogger(sys.stderr),
+                 eager_evaluation=False):
         # Map from identifier to expression objects/trees
         self.symbols = {}
         self.evaluator = evaluate.LocalEvaluator()
@@ -22,6 +24,7 @@ class Parser:
 
         self.out  = out
         self.log = log
+        self.eager_evaluation = eager_evaluation
 
     def p_statement_list(self, p):
         '''statement_list : statement_list statement
@@ -30,7 +33,25 @@ class Parser:
 
     def p_statement_assign(self, p):
         'statement : ID EQUALS expression SEMI'
-        self.symbols[p[1]] = p[3]
+
+        _id = p[1]
+        child_expr = p[3]
+
+        if self.eager_evaluation:
+            # Evaluate the query on the database;
+            # insert it with a random relation key
+            key = evaluate.RelationKey(
+                user='system', program='cached_assignment',
+                relation=_id + str(random.randint(0, 0x1000000000)))
+            insert = Expression('INSERT', schema=None, children=[child_expr],
+                                relation_key=key)
+            self.evaluator.evaluate(insert)
+
+            # Re-write the expression to be a scan of the materialized table
+            self.symbols[_id] = Expression('SCAN', schema=child_expr.schema,
+                                           children=[], relation_key=key)
+        else:
+            self.symbols[_id] = child_expr
 
     def p_statement_dump(self, p):
         'statement : DUMP expression SEMI'

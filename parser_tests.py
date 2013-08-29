@@ -34,3 +34,23 @@ Salary : (dept_name:string,salary:int)
 [(1, 3),(3, 5),(8, 1),(2, 4),(2, 4),(3, 5),(4, 6),(5, 7),(5, 8),(6, 9),(9, 2)]
 '''
     self.assertEqual(self.output.getvalue(), expected)
+
+  def do_eager_test(self, query):
+    '''Ensure that lazy evaluation and eager give the same result'''
+
+    self.parser.parse(query)
+    lazy_result = self.output.getvalue()
+
+    eager_output = StringIO.StringIO()
+    eager_parser = parser.Parser(out=eager_output, eager_evaluation=True)
+    eager_parser.parse(query)
+    eager_result = eager_output.getvalue()
+
+    self.assertEqual(lazy_result, eager_result)
+
+  def ___test_fof_eager(self):
+    # oops, this doesn't work because tuples come back in different order.
+    # Need to normalize the result
+    with open('fof.myl') as fh:
+      self.do_eager_test(fh.read())
+
