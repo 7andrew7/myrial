@@ -25,7 +25,7 @@ StoredRelation = collections.namedtuple('StoredRelation', ['bag', 'schema'])
 
 class Database:
     def evaluate(self, expr):
-        '''Evaluate an expression
+        '''Evaluate an operation
 
         The return value is an iterator over tuples that match the schema
         in expr.schema.

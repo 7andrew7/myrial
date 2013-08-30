@@ -2,10 +2,13 @@
 
 import types
 
-class SchemaTypeException(Exception):
+class TupleTypeException(Exception):
     pass
 
 class NoSuchColumnException(Exception):
+    pass
+
+class SchemaCompatibilityException(Exception):
     pass
 
 class Column:
@@ -91,35 +94,35 @@ class Schema:
     def validate_tuple(self, tup):
         '''Validate that a given tuple matches the schema'''
         if len(self.columns) != len(tup):
-            raise SchemaTypeException(
+            raise TupleTypeException(
                 'Bad column count: schema=%s; tup=(%s)' % (str(self), str(tup)))
         for atom, column in zip(tup, self.columns):
-            assert type(atom) == column.get_python_type()
+            if type(atom) != column.get_python_type():
+                raise TupleTypeException(
+                    'Tuple type mismatch: schema=%s; tup=(%s)' % (
+                        str(self), str(tup)))
 
     def tuple_from_string(self, s, delimeter='\t'):
         '''Convert a string into a tuple with the given schema'''
         toks = s.split(delimeter)
         if len(toks) != len(self.columns):
-            raise SchemaTypeException(
-                'Bad column count: schema=%s ; input=(%s)' % (str(self),
-                                                              ','.join(toks)))
+            raise TupleTypeException(
+                'Bad column count: schema=%s ; input=(%s)' % (
+                    str(self), ','.join(toks)))
 
         x = (column.atom_from_string(tok) for (column, tok) in
              zip(self.columns, toks))
         return tuple(x)
 
-    def compatible(self, other):
-        '''Return whether two schemas are compatible.
-
-        Compatible means that the schemas have the same number of columns,
-        each having the same type.  Column names are ignored
-        '''
+    def check_compatible(self, other):
+        '''Raise an exception if two schemas are incompatible'''
         if len(self.columns) != len(other.columns):
-            return False
+            raise SchemaCompatibilityException(
+                'Unequal column count: %s, %s' % (str(self), str(other)))
         for c1, c2 in zip(self.columns, other.columns):
             if c1.type != c2.type:
-                return False
-        return True
+                raise SchemaCompatibilityException(
+                    'Type mismatch: %s, %s' % (str(self), str(other)))
 
     def project(self, column_names):
         '''Return a new schema derived from column names'''
@@ -142,14 +145,11 @@ if __name__ == "__main__":
     s1 = Schema.from_strings(['salary:int', 'name:string', 'id:int'])
     print s1
     print s1 == s1
-    print s1.compatible(s1)
 
     s2 = Schema.from_strings(['salary1:int', 'name2:string', 'id2:int'])
 
     print s2
     print s1 == s2
-    print s1.compatible(s2)
-    print s2.compatible(s1)
 
     s3 = Schema.join([s1, s2], ['A', 'B'])
     print s3

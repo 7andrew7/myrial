@@ -3,12 +3,8 @@
 import ply.yacc as yacc
 
 import collections
-import db
-import random
 import relation
 import scanner
-
-from db import Operation
 
 import sys
 
