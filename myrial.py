@@ -165,7 +165,7 @@ class StatementProcessor:
     def dowhile(self, statement_list, termination_ex):
         pass
 
-def evaluate(s, out=sys.stdout, eager_evaluation=True):
+def evaluate(s, out=sys.stdout, eager_evaluation=False):
     _parser = parser.Parser()
     processor = StatementProcessor(out, eager_evaluation)
 
