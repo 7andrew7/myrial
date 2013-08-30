@@ -118,7 +118,21 @@ class StatementProcessor:
 
     def assign(self, _id, expr):
         op = self.ep.evaluate(expr)
-        self.symbols[_id] = op
+
+        if self.eager_evaluation:
+            # Transform the query into a database insertion
+            key = db.RelationKey(
+                user='system', program=self.program_name, relation=_id)
+            insert = db.Operation('INSERT', schema=None, children=[op],
+                                  relation_key=key)
+            self.db.evaluate(insert)
+
+            # Re-write the expression to be a scan of the materialized table
+            self.symbols[_id] = db.Operation('SCAN', schema=op.schema,
+                                             children=[], relation_key=key)
+
+        else:
+            self.symbols[_id] = op
 
     def describe(self, _id):
         op = self.symbols[_id]
@@ -151,7 +165,7 @@ class StatementProcessor:
     def dowhile(self, statement_list, termination_ex):
         pass
 
-def evaluate(s, out=sys.stdout, eager_evaluation=False):
+def evaluate(s, out=sys.stdout, eager_evaluation=True):
     _parser = parser.Parser()
     processor = StatementProcessor(out, eager_evaluation)
 

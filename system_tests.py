@@ -8,17 +8,25 @@ import unittest
 Tests of parsing + evaluation
 """
 
+emp_query = '''Emp = LOAD "employees.txt" AS (id:int, dept_id:int,
+name:string, salary:int);
+Dept = LOAD "departments.txt" AS (id:int, name:string, manager_id:int);
+A = JOIN Emp BY dept_id, Dept BY id;
+DUMP A;'''
+
+fof_query = '''E1 = LOAD "edge.txt" AS (source:int, dest:int);
+E2 = E1;
+
+A = JOIN E1 BY dest, E2 BY source;
+FoF = FOREACH A EMIT (E1.source, E2.dest) AS (source:int, dest:int);
+DUMP FoF;'''
+
 class SystemTests(unittest.TestCase):
 
   def test_employees(self):
-    query = '''Emp = LOAD "employees.txt" AS (id:int, dept_id:int,
-    name:string, salary:int);
-    Dept = LOAD "departments.txt" AS (id:int, name:string, manager_id:int);
-    A = JOIN Emp BY dept_id, Dept BY id;
-    DUMP A;'''
 
     output = []
-    myrial.evaluate(query, out=output)
+    myrial.evaluate(emp_query, out=output)
 
     expected = collections.Counter(
       [(1, 2, 'Bill Howe', 25000, 2, 'human resources', 2),
@@ -32,17 +40,26 @@ class SystemTests(unittest.TestCase):
     self.assertEqual(output[0], expected)
 
   def test_fof(self):
-    query = '''E1 = LOAD "edge.txt" AS (source:int, dest:int);
-    E2 = E1;
-
-    A = JOIN E1 BY dest, E2 BY source;
-    FoF = FOREACH A EMIT (E1.source, E2.dest) AS (source:int, dest:int);
-    DUMP FoF;'''
-
     output = []
-    myrial.evaluate(query, out=output)
+    myrial.evaluate(fof_query, out=output)
 
     expected = collections.Counter(
       [(1, 3),(3, 5),(8, 1),(2, 4),(2, 4),(3, 5),(4, 6),(5, 7),(5, 8),(6, 9),
        (9, 2)])
     self.assertEqual(output[0], expected)
+
+  def __do_eager_test(self, query):
+    '''Validate that lazy and eager evaluation yield the same result'''
+    out1 = []
+    myrial.evaluate(query, out=out1, eager_evaluation=False)
+
+    out2 = []
+    myrial.evaluate(query, out=out2, eager_evaluation=True)
+
+    self.assertEqual(out1, out2)
+
+  def test_employees_eager(self):
+    self.__do_eager_test(emp_query)
+
+  def test_fof_eager(self):
+    self.__do_eager_test(fof_query)
