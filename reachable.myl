@@ -7,8 +7,7 @@ DO
   NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
       (source:int, dest:int);
   Delta = DIFF NewlyReachable, Reachable;
-  Reachable = DISTINCT UNION NewlyReachable, Reachable;
-  DUMP Delta;
+  Reachable = UNION Delta, Reachable;
 WHILE Delta;
 
 DUMP Reachable;
