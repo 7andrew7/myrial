@@ -185,6 +185,7 @@ def evaluate(s, out=sys.stdout, eager_evaluation=False):
 
     statement_list = _parser.parse(s)
     processor.evaluate(statement_list)
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'No input file provided'
