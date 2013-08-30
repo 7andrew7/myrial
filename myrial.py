@@ -152,15 +152,15 @@ class StatementProcessor:
             s = '%s : %s\n' % (_id, str(op))
             self.out.write(s)
 
-    def dump(self, expr):
-        op = self.ep.evaluate(expr)
+    def dump(self, _id):
+        op = self.symbols[_id]
         result = self.db.evaluate(op)
 
         if type(self.out) == types.ListType:
             self.out.append(collections.Counter(result))
         else:
             strs = (str(x) for x in result)
-            self.out.write('[%s]\n' % ','.join(strs))
+            self.out.write('%s : [%s]\n' % (_id, ','.join(strs)))
 
     def dowhile(self, statement_list, termination_ex):
         # Switch to eager evaluation; lazy evaluation will screw up
