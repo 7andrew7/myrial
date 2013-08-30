@@ -119,7 +119,7 @@ class StatementProcessor:
     def assign(self, _id, expr):
         op = self.ep.evaluate(expr)
 
-        if self.eager_evaluation:
+        if self.eager_evaluation and op.is_non_leaf():
             # Transform the query into a database insertion
             key = db.RelationKey(
                 user='system', program=self.program_name, relation=_id)

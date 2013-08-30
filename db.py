@@ -17,6 +17,11 @@ class Operation:
         return "{%s kwargs=%s schema=%s children=[%s]}" % (
             self.type, str(self.kwargs), self.schema, ','.join(child_strs))
 
+    def is_leaf(self):
+        return not bool(self.children)
+
+    def is_non_leaf(self):
+        return bool(self.children)
 
 RelationKey = collections.namedtuple('RelationKey',
                                      ['user', 'program', 'relation'])
