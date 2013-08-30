@@ -1,0 +1,78 @@
+
+Edge = LOAD "edge.txt" AS (source:int, dest:int);
+Reachable = Edge;
+
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;
+
+  _A = JOIN Reachable BY dest, Edge BY source;
+  NewlyReachable = DISTINCT FOREACH _A EMIT (Reachable.source, Edge.dest) AS
+      (source:int, dest:int);
+  Delta = DIFF NewlyReachable, Reachable;
+  Reachable = DISTINCT UNION NewlyReachable, Reachable;
+
+DUMP Delta;
+DUMP Reachable;

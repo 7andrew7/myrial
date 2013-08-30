@@ -123,7 +123,7 @@ class StatementProcessor:
             # Transform the query into a database insertion
             key = db.RelationKey(
                 user='system', program=self.program_name, relation=_id)
-            insert = db.Operation('INSERT', schema=None, children=[op],
+            insert = db.Operation('REPLACE', schema=None, children=[op],
                                   relation_key=key)
             self.db.evaluate(insert)
 
@@ -163,7 +163,21 @@ class StatementProcessor:
             self.out.write('[%s]\n' % ','.join(strs))
 
     def dowhile(self, statement_list, termination_ex):
-        pass
+        # Switch to eager evaluation; lazy evaluation will screw up
+        # our symbol table
+        old_mode = self.eager_evaluation
+        self.eager_evaluation = True
+
+        try:
+            while True:
+                self.evaluate(statement_list)
+                term_op = self.ep.evaluate(termination_ex)
+                result = self.db.evaluate(term_op)
+                result.next() # check for non-emptiness
+        except StopIteration:
+            pass
+        finally:
+            self.eager_evaluation = old_mode
 
 def evaluate(s, out=sys.stdout, eager_evaluation=False):
     _parser = parser.Parser()
@@ -171,7 +185,6 @@ def evaluate(s, out=sys.stdout, eager_evaluation=False):
 
     statement_list = _parser.parse(s)
     processor.evaluate(statement_list)
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'No input file provided'
