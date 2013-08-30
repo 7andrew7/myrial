@@ -4,8 +4,10 @@ import db
 import relation
 import parser
 
+import collections
 import random
 import sys
+import types
 
 class ExpressionProcessor:
     '''Convert syntactic expressions into an operation (query plan)
@@ -96,7 +98,6 @@ class ExpressionProcessor:
         return db.Operation('JOIN', schema_out, children=[c_op1, c_op2],
                             join_attributes=join_attributes)
 
-
 class StatementProcessor:
     '''Evaluate a list of statements'''
 
@@ -121,17 +122,31 @@ class StatementProcessor:
 
     def describe(self, _id):
         op = self.symbols[_id]
-        self.out.write('%s : %s\n' % (_id, str(op.schema)))
+
+        if type(self.out) == types.ListType:
+            self.out.append(op.schema)
+        else:
+            s = '%s : %s\n' % (_id, str(op.schema))
+            self.out.write(s)
 
     def explain(self, _id):
         op = self.symbols[_id]
-        self.out.write('%s : %s\n' % (_id, str(op)))
+
+        if type(self.out) == types.ListType:
+            self.out.append(op)
+        else:
+            s = '%s : %s\n' % (_id, str(op))
+            self.out.write(s)
 
     def dump(self, expr):
         op = self.ep.evaluate(expr)
         result = self.db.evaluate(op)
-        strs = (str(x) for x in result)
-        self.out.write('[%s]\n' % ','.join(strs))
+
+        if type(self.out) == types.ListType:
+            self.out.append(collections.Counter(result))
+        else:
+            strs = (str(x) for x in result)
+            self.out.write('[%s]\n' % ','.join(strs))
 
     def dowhile(self, statement_list, termination_ex):
         pass
