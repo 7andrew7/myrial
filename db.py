@@ -138,6 +138,6 @@ class LocalDatabase(Database):
                 bag=collections.Counter(), schema=expr.children[0].schema)
 
         bag, schema = self.db[relation_key]
-        assert schema.compatible(expr.children[0].schema)
+        schema.check_compatible(expr.children[0].schema)
 
         bag.update(self.evaluate_to_bag(expr.children[0]))

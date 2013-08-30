@@ -50,6 +50,11 @@ class Schema:
 
         self.columns = columns
 
+    @staticmethod
+    def check_columns_compatible(schema1, index1, schema2, index2):
+        if schema1.column_type(index1) != schema2.column_type(index2):
+            raise SchemaCompatibilityException()
+
     @classmethod
     def from_strings(cls, strs):
         '''Create a schema from an iterable set of strings

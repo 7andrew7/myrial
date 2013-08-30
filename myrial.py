@@ -67,6 +67,36 @@ class ExpressionProcessor:
         column_indexes = [schema_in.column_index(c) for c in column_names]
         return db.Operation('FOREACH', schema_out, children=[c_op],
                             column_indexes=column_indexes)
+
+    def join(self, arg1, arg2):
+        c_op1 = self.symbols[arg1.id]
+        c_op2 = self.symbols[arg2.id]
+        schema1 = c_op1.schema
+        schema2 = c_op2.schema
+
+        # The parser validates that we're given equal column counts
+        assert len(arg1.column_names) == len(arg2.column_names)
+
+        # Compute pairs of join attributes that must match in the merged schema.
+        # Also, enforce type safety.
+        join_attributes = []
+        offset = c_op1.schema.num_columns()
+        for c1, c2 in zip(arg1.column_names, arg2.column_names):
+            index1 = schema1.column_index(c1)
+            index2 = schema2.column_index(c2)
+
+            relation.Schema.check_columns_compatible(
+                schema1, index1, schema2, index2)
+            join_attributes.append((index1, index2 + offset))
+
+        # compute the schema of the merged relation
+        schema_out = relation.Schema.join([c_op1.schema, c_op2.schema],
+                                          [arg1.id, arg2.id])
+
+        return db.Operation('JOIN', schema_out, children=[c_op1, c_op2],
+                            join_attributes=join_attributes)
+
+
 class StatementProcessor:
     '''Evaluate a list of statements'''
 
@@ -97,8 +127,12 @@ class StatementProcessor:
         op = self.symbols[_id]
         self.out.write('%s : %s\n' % (_id, str(op)))
 
-    def dump(self, _id):
-        pass
+    def dump(self, expr):
+        op = self.ep.evaluate(expr)
+        result = self.db.evaluate(op)
+        strs = (str(x) for x in result)
+        self.out.write('[%s]\n' % ','.join(strs))
+
     def dowhile(self, statement_list, termination_ex):
         pass
 

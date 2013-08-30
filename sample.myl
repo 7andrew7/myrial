@@ -40,6 +40,7 @@ EXPLAIN X;
 Y = JOIN E2 BY (source, dest), E1 BY (dest, source);
 EXPLAIN Y;
 
+/*
 DO
    Q = JOIN E1 BY dest, E2 BY source;
    R = FOREACH Q EMIT (E1.source, E2.dest) AS (source:int, dest:int);
@@ -47,3 +48,4 @@ WHILE R;
 
 DESCRIBE Q;
 DESCRIBE R;
+*/

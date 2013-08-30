@@ -10,6 +10,9 @@ import sys
 
 JoinTarget = collections.namedtuple('JoinTarget',['id', 'column_names'])
 
+class JoinColumnCountMismatchException(Exception):
+    pass
+
 class Parser:
     def __init__(self, log=yacc.PlyLogger(sys.stderr)):
         self.log = log
@@ -28,7 +31,7 @@ class Parser:
         p[0] = ('ASSIGN', p[1], p[3])
 
     def p_statement_dump(self, p):
-        'statement : DUMP ID SEMI'
+        'statement : DUMP expression SEMI'
         p[0] = ('DUMP', p[2])
 
     def p_statement_describe(self, p):
@@ -56,7 +59,6 @@ class Parser:
         schema = p[6]
         tuple_list = p[3]
 
-        # TODO Move this to type checker?
         for tup in tuple_list:
             schema.validate_tuple(tup)
         p[0] = ('TABLE', tuple_list, schema)
@@ -86,6 +88,8 @@ class Parser:
 
     def p_expression_join(self, p):
         'expression : JOIN join_argument COMMA join_argument'
+        if len(p[2].column_names) != len(p[4].column_names):
+            raise JoinColumnCountMismatchException()
         p[0] = ('JOIN', p[2], p[4])
 
     def p_join_argument_list(self, p):
