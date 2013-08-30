@@ -15,96 +15,67 @@ import sys
 JoinTarget = collections.namedtuple('JoinTarget',['id', 'column_names'])
 
 class Parser:
-    def __init__(self, out=sys.stdout, log=yacc.PlyLogger(sys.stderr),
-                 eager_evaluation=False):
-        # Map from identifier to expression objects/trees
-        self.symbols = {}
-        self.db = db.LocalDatabase()
-        self.tokens = scanner.tokens
-
-        self.out  = out
+    def __init__(self, log=yacc.PlyLogger(sys.stderr)):
         self.log = log
-        self.eager_evaluation = eager_evaluation
+        self.tokens = scanner.tokens
 
     def p_statement_list(self, p):
         '''statement_list : statement_list statement
                           | statement'''
-        pass
+        if len(p) == 3:
+            p[0] = p[1] + [p[2]]
+        else:
+            p[0] = [p[1]]
 
     def p_statement_assign(self, p):
         'statement : ID EQUALS expression SEMI'
-
-        _id = p[1]
-        child_expr = p[3]
-
-        if self.eager_evaluation:
-            # Evaluate the query on the database;
-            # insert it with a random relation key
-            key = evaluate.RelationKey(
-                user='system', program='cached_assignment',
-                relation=_id + str(random.randint(0, 0x1000000000)))
-            insert = Operation('INSERT', schema=None, children=[child_expr],
-                                relation_key=key)
-            self.db.evaluate(insert)
-
-            # Re-write the expression to be a scan of the materialized table
-            self.symbols[_id] = Operation('SCAN', schema=child_expr.schema,
-                                           children=[], relation_key=key)
-        else:
-            self.symbols[_id] = child_expr
+        p[0] = ('ASSIGN', p[1], p[3])
 
     def p_statement_dump(self, p):
-        'statement : DUMP expression SEMI'
-        result = self.db.evaluate(p[2])
-        strs = (str(x) for x in result)
-        self.out.write('[%s]\n' % ','.join(strs))
+        'statement : DUMP ID SEMI'
+        p[0] = ('DUMP', p[2])
 
     def p_statement_describe(self, p):
         'statement : DESCRIBE ID SEMI'
-        ex = self.symbols[p[2]]
-        self.out.write('%s : %s\n' % (p[2], str(ex.schema)))
+        p[0] = ('DESCRIBE', p[2])
 
     def p_statement_explain(self, p):
         'statement : EXPLAIN ID SEMI'
-        ex = self.symbols[p[2]]
-        self.out.write('%s : %s\n' % (p[2], str(ex)))
+        p[0] = ('EXPLAIN', p[2])
 
     def p_statement_dowhile(self, p):
         'statement : DO statement_list WHILE expression SEMI'
-        pass
+        p[0] = ('DOWHILE', p[2], p[4])
 
     def p_expression_id(self, p):
         'expression : ID'
-        p[0] = self.symbols[p[1]]
+        p[0] = ('ALIAS', p[1])
 
     def p_expression_load(self, p):
         'expression : LOAD STRING_LITERAL AS schema'
-        p[0] = Operation('LOAD', p[4], path=p[2])
+        p[0] = ('LOAD', p[2], p[4])
 
     def p_expression_table(self, p):
         'expression : TABLE LBRACKET tuple_list RBRACKET AS schema'
         schema = p[6]
         tuple_list = p[3]
+
+        # TODO Move this to type checker?
         for tup in tuple_list:
             schema.validate_tuple(tup)
-        p[0] = Operation('TABLE', p[6], tuple_list=tuple_list)
+        p[0] = ('TABLE', tuple_list, schema)
 
     def p_expression_limit(self, p):
         'expression : LIMIT ID COMMA INTEGER_LITERAL'
-        ex = self.symbols[p[2]]
-        p[0] = Operation('LIMIT', ex.schema, children=[ex], count=p[4])
+        p[0] = ('LIMIT', p[2], p[4])
 
     def p_expression_distinct(self, p):
         'expression : DISTINCT expression'
-        p[0] = Operation('DISTINCT', p[2].schema, children=[p[2]])
+        p[0] = ('DISTINCT', p[2])
 
     def p_expression_binary_set_operation(self, p):
         'expression : setop ID COMMA ID'
-        ex1 = self.symbols[p[2]]
-        ex2 = self.symbols[p[4]]
-        assert ex1.schema.compatible(ex2.schema)
-
-        p[0] = Operation(p[1], ex1.schema, children=[ex1, ex2])
+        p[0] = (p[1], p[2], p[4])
 
     def p_setop(self, p):
         '''setop : INTERSECT
@@ -115,54 +86,11 @@ class Parser:
     def p_expression_foreach(self, p):
         'expression : FOREACH ID EMIT LPAREN column_name_list RPAREN \
         optional_as'
-
-        # TODO: we should allow duplicate columns to be selected, as long as
-        # the user provides a rename schema
-
-        ex = self.symbols[p[2]]
-        schema_in = ex.schema
-        schema_out = ex.schema.project(p[5])
-
-        # Rename the columns, if requested
-        if p[7]:
-            assert schema_out.compatible(p[7])
-            schema_out = p[7]
-
-        column_indexes = [schema_in.column_index(c) for c in p[5]]
-        p[0] = Operation('FOREACH', schema_out, children=[ex],
-                          column_indexes=column_indexes)
+        p[0] = ('FOREACH', p[2], p[5], p[7])
 
     def p_expression_join(self, p):
         'expression : JOIN join_argument COMMA join_argument'
-        target1 = p[2]
-        target2 = p[4]
-
-        # Look up the expression and schema for the given identifiers
-        exp1 = self.symbols[target1.id]
-        exp2 = self.symbols[target2.id]
-        schema1 = exp1.schema
-        schema2 = exp2.schema
-
-        # Each target must refer to the same number of join attributes
-        assert len(target1.column_names) == len(target2.column_names)
-
-        # Compute pairs of join attributes that must match in the merged schema.
-        # Also, enforce type safety.
-        join_attributes = []
-        offset = exp1.schema.num_columns()
-        for c1, c2 in zip(target1.column_names, target2.column_names):
-            index1 = schema1.column_index(c1)
-            index2 = schema2.column_index(c2)
-            assert schema1.column_type(index1) == schema2.column_type(index2)
-
-            join_attributes.append((index1, index2 + offset))
-
-        # compute the schema of the merged relation
-        schema_out = relation.Schema.join([exp1.schema, exp2.schema],
-                                          [target1.id, target2.id])
-
-        p[0] = Operation('JOIN', schema_out, children=[exp1, exp2],
-                          join_attributes=join_attributes)
+        p[0] = ('JOIN', p[2], p[4])
 
     def p_join_argument_list(self, p):
         'join_argument : ID BY LPAREN column_name_list RPAREN'
@@ -205,7 +133,7 @@ class Parser:
         else:
             p[0] = (p[1],)
 
-    def p_column_namea_dotted(self, p):
+    def p_column_name_dotted(self, p):
         'column_name : column_name DOT ID'
         p[0] = p[1] + '.' + p[3]
 
@@ -249,7 +177,7 @@ class Parser:
 
     def parse(self, s):
         parser = yacc.yacc(module=self, debug=True)
-        parser.parse(s, lexer=scanner.lexer, tracking=True)
+        return parser.parse(s, lexer=scanner.lexer, tracking=True)
 
     def p_error(self, p):
         self.log.error("Syntax error: %s" %  str(p))
@@ -260,5 +188,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     parser = Parser()
+
     with open(sys.argv[1]) as fh:
-        parser.parse(fh.read())
+        print parser.parse(fh.read())

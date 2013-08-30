@@ -6,7 +6,6 @@ import collections
 import itertools
 
 class Operation:
-    '''Representation of a myrial expression '''
     def  __init__(self, _type, schema, children=[], **kwargs):
         self.type = _type
         self.schema = schema
